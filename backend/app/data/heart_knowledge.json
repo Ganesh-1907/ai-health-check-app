@@ -1,0 +1,82 @@
+[
+  {
+    "title": "Heart Attack Warning Signs",
+    "topic": "emergency",
+    "text": "Possible heart attack warning signs include pressure or pain in the chest, pain radiating to the arm, jaw, back, or stomach, shortness of breath, sweating, nausea, lightheadedness, or sudden severe fatigue. Chest pain with sweating or breathlessness should be treated as urgent and emergency services should be contacted."
+  },
+  {
+    "title": "Hypertension Monitoring",
+    "topic": "blood_pressure",
+    "text": "Persistent blood pressure elevation increases risk for heart attack, stroke, kidney disease, and heart failure. Blood pressure under 120/80 mmHg is usually considered normal. Values of 140/90 mmHg or higher need clinical follow-up, and values around 180 systolic or 120 diastolic may require urgent evaluation."
+  },
+  {
+    "title": "Cholesterol And Cardiovascular Risk",
+    "topic": "cholesterol",
+    "text": "High LDL cholesterol and high total cholesterol raise the risk of coronary artery disease. Heart-healthy dietary strategies include reducing trans fats, limiting saturated fat, increasing soluble fiber, favoring nuts and legumes in moderation, and using unsaturated fats such as olive oil."
+  },
+  {
+    "title": "Blood Sugar And Heart Disease",
+    "topic": "blood_sugar",
+    "text": "Diabetes and repeated high blood sugar accelerate cardiovascular risk. Glucose control, steady meal timing, weight management, regular activity, and medication adherence can reduce complications. Blood sugar elevations combined with hypertension or dyslipidemia meaningfully raise heart risk."
+  },
+  {
+    "title": "BMI Weight And Heart Load",
+    "topic": "weight",
+    "text": "Excess weight can worsen blood pressure, cholesterol, insulin resistance, sleep quality, and exercise tolerance. Gradual weight reduction with sustainable diet changes, better sleep, and regular activity can lower cardiovascular burden and improve metabolic markers."
+  },
+  {
+    "title": "Smoking Alcohol And Heart Risk",
+    "topic": "lifestyle",
+    "text": "Smoking damages blood vessels and substantially increases cardiovascular risk. Heavy alcohol use can worsen blood pressure, rhythm problems, sleep quality, and weight control. Smoking cessation and alcohol moderation are among the strongest lifestyle improvements for heart health."
+  },
+  {
+    "title": "Sleep Stress And Heart Health",
+    "topic": "recovery",
+    "text": "Chronic sleep deprivation and sustained stress can worsen blood pressure, glucose control, inflammation, and recovery. Protecting seven to eight hours of sleep, stress management, and regular routines can support better cardiovascular outcomes."
+  },
+  {
+    "title": "Heart Healthy Exercise",
+    "topic": "exercise",
+    "text": "Regular moderate activity such as walking, cycling, or swimming improves blood pressure, insulin sensitivity, circulation, and weight control. People with chest pain, severe breathlessness, fainting, or known cardiac limitations should get medical guidance before increasing exercise intensity."
+  },
+  {
+    "title": "DASH Style Eating",
+    "topic": "diet",
+    "text": "A DASH style eating pattern emphasizes vegetables, fruits, beans, whole grains, low-fat dairy, lean protein, and low sodium choices. It can help lower blood pressure and supports overall cardiovascular prevention when combined with exercise and weight management."
+  },
+  {
+    "title": "Lipid Profile Interpretation",
+    "topic": "reports",
+    "text": "Lipid profile reports often include total cholesterol, LDL, HDL, and triglycerides. LDL above target or HDL below healthy range can increase coronary risk. These results are clinically useful when interpreted alongside age, blood pressure, smoking, diabetes, and family history."
+  },
+  {
+    "title": "2D Echo Ejection Fraction",
+    "topic": "reports",
+    "text": "A 2D Echo may report ejection fraction, chamber size, valve findings, and wall motion abnormalities. Reduced ejection fraction can indicate impaired pumping function, especially when associated with shortness of breath, swelling, fatigue, or previous heart disease."
+  },
+  {
+    "title": "TMT And Ischemia",
+    "topic": "reports",
+    "text": "Treadmill test reports may describe whether exercise induced ischemic changes or chest discomfort were present. A positive or strongly suggestive TMT increases concern and usually warrants clinician review in the full context of symptoms, risk factors, and follow-up investigations."
+  },
+  {
+    "title": "Angiogram And Blockage",
+    "topic": "reports",
+    "text": "Angiogram findings may mention coronary artery stenosis or blockage percentage. Higher grade narrowing, especially around seventy percent or more, can represent clinically important coronary disease and should be discussed promptly with a cardiologist."
+  },
+  {
+    "title": "Daily Monitoring Priorities",
+    "topic": "monitoring",
+    "text": "For ongoing heart-health monitoring, useful daily records include blood pressure, blood sugar when relevant, weight, step count, sleep duration, and symptom changes. Trends over time are often more useful than a single reading when deciding whether the pattern is improving or worsening."
+  },
+  {
+    "title": "Medicine Guidance Categories",
+    "topic": "medicines",
+    "text": "Common cardiovascular medication categories include blood pressure medicines, statins for cholesterol, diabetes medicines, antiplatelets, anticoagulants, and medicines for rhythm or heart failure when prescribed. People should not start, stop, or adjust prescription medicines without clinician guidance."
+  },
+  {
+    "title": "When To Seek Immediate Care",
+    "topic": "emergency",
+    "text": "Immediate medical attention is warranted for severe chest pain, chest pain with sweating, chest pain with breathlessness, fainting, severe dizziness, new confusion, very high blood pressure with symptoms, or sudden worsening shortness of breath."
+  }
+]

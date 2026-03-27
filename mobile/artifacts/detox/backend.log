@@ -1,0 +1,270 @@
+INFO:     Started server process [88556]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52521 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     Started server process [84340]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57654 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53884 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53884 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53911 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     Started server process [57920]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59820 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59924 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59924 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59939 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50428 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50428 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [91360]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51853 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51971 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51971 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51971 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52034 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52034 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59707 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [87152]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59819 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59949 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59949 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59949 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54197 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54197 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54197 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49382 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64846 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64846 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [41588]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52885 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53008 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53008 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53026 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59471 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59471 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59471 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59526 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59526 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59566 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59566 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59566 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [28396]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59744 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59876 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59876 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59891 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59581 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59581 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59581 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49974 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49974 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50069 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50069 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50069 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [52252]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50190 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63978 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63978 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51865 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62464 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62464 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62540 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62540 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [82188]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62636 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62742 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62742 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62758 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49263 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49263 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49263 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49304 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49304 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49339 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49339 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49339 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [61584]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49481 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55711 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55711 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55726 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55793 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55793 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55793 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55835 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55835 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55900 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55900 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [71020]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60544 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59489 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59489 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59489 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59588 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59588 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59588 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57338 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57338 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53012 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53012 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [31924]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51801 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51922 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51922 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51937 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52008 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52008 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52008 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52036 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52036 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52069 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52069 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52107 - "POST /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52143 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52143 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [33448]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53635 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53738 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53738 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53738 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53299 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57163 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57164 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57163 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57163 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57203 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57203 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52092 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52092 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [48776]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49670 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49818 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49911 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49889 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49939 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49939 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50070 - "POST /api/v1/care-search HTTP/1.1" 200 OK
+INFO:     Started server process [48044]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:57463 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58532 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58532 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58547 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "PUT /api/v1/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "POST /api/v1/users/1/assessments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55285 - "POST /api/v1/users/1/reports/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55257 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55285 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59273 - "POST /api/v1/users/1/daily-logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59273 - "GET /api/v1/users/1/dashboard HTTP/1.1" 200 OK
+INFO:     Started server process [75380]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59365 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59472 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59472 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [70096]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60035 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60136 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60136 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52410 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52410 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [32668]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61692 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61837 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61837 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61895 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61895 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [66628]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:62010 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58817 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58817 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58877 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58877 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [76720]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58958 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59097 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59097 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56280 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56280 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [44960]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60978 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61128 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61128 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK
+INFO:     Started server process [83664]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51474 - "GET /api/v1/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62249 - "POST /api/v1/bootstrap/demo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62249 - "GET /api/v1/users/1/chat-history HTTP/1.1" 200 OK

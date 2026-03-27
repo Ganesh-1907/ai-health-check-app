@@ -1,0 +1,25 @@
+{
+  "model_name": "framingham_calibrated_logistic_regression",
+  "dataset_ref": "aasheesh200/framingham-heart-study-dataset",
+  "features": [
+    "age",
+    "sex_male",
+    "systolic_bp",
+    "diastolic_bp",
+    "cholesterol",
+    "bmi",
+    "heart_rate",
+    "high_blood_sugar",
+    "current_smoker",
+    "diabetes",
+    "hypertension_history"
+  ],
+  "metrics": {
+    "roc_auc": 0.6973,
+    "pr_auc": 0.2941,
+    "brier_score": 0.1218,
+    "training_rows": 3392,
+    "test_rows": 848,
+    "positive_rate": 0.1519
+  }
+}

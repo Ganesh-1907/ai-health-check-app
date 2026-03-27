@@ -1,0 +1,126 @@
+09:23:21.511 detox[52708] B node_modules\detox\local-cli\cli.js test -c android.att.debug
+  data: {
+    "id": "06e622d1-d13e-d7e8-6ed9-b5107e26b5b6",
+    "detoxConfig": {
+      "configurationName": "android.att.debug",
+      "apps": {
+        "default": {
+          "type": "android.apk",
+          "binaryPath": "C:\\HGAI_mobile\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+          "testBinaryPath": "C:\\HGAI_mobile\\android\\app\\build\\outputs\\apk\\androidTest\\debug\\app-debug-androidTest.apk",
+          "build": "node ./e2e/scripts/build-android-debug.cjs",
+          "reversePorts": [
+            8000
+          ]
+        }
+      },
+      "artifacts": {
+        "rootDir": "artifacts\\detox\\android.att.debug.2026-03-19 03-53-21Z",
+        "plugins": {
+          "log": {
+            "enabled": true,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "screenshot": {
+            "enabled": true,
+            "shouldTakeAutomaticSnapshots": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "video": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "instruments": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "uiHierarchy": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          }
+        }
+      },
+      "behavior": {
+        "init": {
+          "keepLockFile": false,
+          "reinstallApp": true,
+          "exposeGlobals": true
+        },
+        "cleanup": {
+          "shutdownDevice": false
+        },
+        "launchApp": "auto"
+      },
+      "cli": {
+        "configuration": "android.att.debug",
+        "start": true
+      },
+      "commands": [
+        {
+          "appName": "default",
+          "build": "node ./e2e/scripts/build-android-debug.cjs"
+        }
+      ],
+      "device": {
+        "type": "android.attached",
+        "device": {
+          "adbName": ".*"
+        }
+      },
+      "logger": {
+        "level": "info",
+        "overrideConsole": true,
+        "options": {
+          "showLoggerName": true,
+          "showPid": true,
+          "showLevel": false,
+          "showMetadata": false,
+          "basepath": "C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src",
+          "prefixers": {},
+          "stringifiers": {}
+        }
+      },
+      "testRunner": {
+        "retries": 0,
+        "forwardEnv": false,
+        "detached": false,
+        "bail": false,
+        "noRetryArgs": [
+          "shard"
+        ],
+        "jest": {
+          "setupTimeout": 240000,
+          "teardownTimeout": 30000,
+          "retryAfterCircusRetries": false,
+          "reportWorkerAssign": true
+        },
+        "args": {
+          "$0": "jest",
+          "_": [],
+          "config": "e2e/jest.config.js",
+          "--": []
+        }
+      },
+      "session": {
+        "autoStart": true,
+        "debugSynchronization": 10000
+      }
+    },
+    "detoxIPCServer": "primary-52708",
+    "testResults": [],
+    "testSessionIndex": 0,
+    "workersCount": 0
+  }
+09:23:21.529 detox[52708] i Server path not specified, so defaulting to ipc.config.socketRoot + ipc.config.appspace + ipc.config.id /tmp/detox.primary-52708
+09:23:21.530 detox[52708] i starting server on  /tmp/detox.primary-52708 
+09:23:21.530 detox[52708] i starting TLS server false
+09:23:21.530 detox[52708] i starting server as Unix || Windows Socket
+09:23:21.533 detox[52708] i Detox server listening on localhost:57607...
+09:23:21.536 detox[52708] i Serialized the session state at: C:\Users\raash\AppData\Local\Temp\06e622d1-d13e-d7e8-6ed9-b5107e26b5b6.detox.json
+09:23:21.537 detox[52708] B jest --config e2e/jest.config.js
+09:23:21.553 detox[52708] i (node:52708) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+09:23:21.560 detox[52708] E Command failed with exit code = 1:
+jest --config e2e/jest.config.js
+09:23:21.561 detox[52708] i Detox server has been closed gracefully
+09:23:21.561 detox[52708] E node_modules\detox\local-cli\cli.js test -c android.att.debug

@@ -1,0 +1,352 @@
+09:22:01.419 detox[47556] B node_modules\detox\local-cli\cli.js test -c android.att.debug
+  data: {
+    "id": "995870a0-33ab-3733-39d9-e223a5c8485d",
+    "detoxConfig": {
+      "configurationName": "android.att.debug",
+      "apps": {
+        "default": {
+          "type": "android.apk",
+          "binaryPath": "C:\\HGAI_mobile\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+          "testBinaryPath": "C:\\HGAI_mobile\\android\\app\\build\\outputs\\apk\\androidTest\\debug\\app-debug-androidTest.apk",
+          "build": "node ./e2e/scripts/build-android-debug.cjs",
+          "reversePorts": [
+            8000
+          ]
+        }
+      },
+      "artifacts": {
+        "rootDir": "artifacts\\detox\\android.att.debug.2026-03-19 03-52-01Z",
+        "plugins": {
+          "log": {
+            "enabled": true,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "screenshot": {
+            "enabled": true,
+            "shouldTakeAutomaticSnapshots": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "video": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "instruments": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "uiHierarchy": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          }
+        }
+      },
+      "behavior": {
+        "init": {
+          "keepLockFile": false,
+          "reinstallApp": true,
+          "exposeGlobals": true
+        },
+        "cleanup": {
+          "shutdownDevice": false
+        },
+        "launchApp": "auto"
+      },
+      "cli": {
+        "configuration": "android.att.debug",
+        "start": true
+      },
+      "commands": [
+        {
+          "appName": "default",
+          "build": "node ./e2e/scripts/build-android-debug.cjs"
+        }
+      ],
+      "device": {
+        "type": "android.attached",
+        "device": {
+          "adbName": ".*"
+        }
+      },
+      "logger": {
+        "level": "info",
+        "overrideConsole": true,
+        "options": {
+          "showLoggerName": true,
+          "showPid": true,
+          "showLevel": false,
+          "showMetadata": false,
+          "basepath": "C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src",
+          "prefixers": {},
+          "stringifiers": {}
+        }
+      },
+      "testRunner": {
+        "retries": 0,
+        "forwardEnv": false,
+        "detached": false,
+        "bail": false,
+        "noRetryArgs": [
+          "shard"
+        ],
+        "jest": {
+          "setupTimeout": 240000,
+          "teardownTimeout": 30000,
+          "retryAfterCircusRetries": false,
+          "reportWorkerAssign": true
+        },
+        "args": {
+          "$0": "jest",
+          "_": [],
+          "config": "e2e/jest.config.js",
+          "--": []
+        }
+      },
+      "session": {
+        "autoStart": true,
+        "debugSynchronization": 10000
+      }
+    },
+    "detoxIPCServer": "primary-47556",
+    "testResults": [],
+    "testSessionIndex": 0,
+    "workersCount": 0
+  }
+09:22:01.442 detox[47556] i Server path not specified, so defaulting to ipc.config.socketRoot + ipc.config.appspace + ipc.config.id /tmp/detox.primary-47556
+09:22:01.443 detox[47556] i starting server on  /tmp/detox.primary-47556 
+09:22:01.443 detox[47556] i starting TLS server false
+09:22:01.443 detox[47556] i starting server as Unix || Windows Socket
+09:22:01.446 detox[47556] i Detox server listening on localhost:53198...
+09:22:01.449 detox[47556] i Serialized the session state at: C:\Users\raash\AppData\Local\Temp\995870a0-33ab-3733-39d9-e223a5c8485d.detox.json
+09:22:01.450 detox[47556] B jest --config e2e/jest.config.js
+09:22:01.466 detox[47556] i (node:47556) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+09:22:11.706 detox[36648] i Service path not specified, so defaulting to ipc.config.socketRoot + ipc.config.appspace + id 
+09:22:11.712 detox[36648] i requested connection to  primary-47556 /tmp/detox.primary-47556
+09:22:11.712 detox[36648] i Connecting client on Unix Socket : /tmp/detox.primary-47556
+09:22:11.715 detox[36648] i retrying reset
+09:22:11.716 detox[47556] i ## socket connection to server detected ##
+09:22:11.717 detox[36648] i dispatching event to  primary-47556 /tmp/detox.primary-47556  :  registerContext , { id: 'secondary-36648' }
+09:22:11.721 detox[47556] i received event of :  registerContext { id: 'secondary-36648' }
+09:22:11.722 detox[47556] i dispatching event to socket  :  registerContextDone {
+  testResults: [],
+  testSessionIndex: 0,
+  unsafe_earlyTeardown: undefined
+}
+09:22:11.728 detox[36648] i ## received events ##
+09:22:11.730 detox[36648] i detected event registerContextDone { testResults: [], testSessionIndex: 0 }
+09:22:12.689 detox[36648] B e2e\heartguard.comprehensive.test.js
+09:22:12.842 detox[36648] B set up environment
+09:22:12.849 detox[36648] i dispatching event to  primary-47556 /tmp/detox.primary-47556  :  registerWorker , { workerId: 'w1' }
+09:22:12.851 detox[36648] i ## received events ##
+09:22:12.851 detox[47556] i received event of :  registerWorker { workerId: 'w1' }
+09:22:12.852 detox[36648] i detected event registerWorkerDone { workersCount: 1 }
+09:22:12.852 detox[47556] i dispatching event to socket  :  registerWorkerDone { workersCount: 1 }
+09:22:12.852 detox[47556] i broadcasting event to all known sockets listening to  \\.\pipe\tmp-detox.primary-47556  :   sessionStateUpdate { workersCount: 1 }
+09:22:15.555 detox[36648] i ## received events ##
+09:22:15.555 detox[36648] i detected event sessionStateUpdate { workersCount: 1 }
+09:22:15.602 detox[47556] B connection :53198<->:52529
+09:22:15.614 detox[36648] i opened web socket to: ws://localhost:53198
+09:22:15.631 detox[36648] i send message
+  data: {"type":"login","params":{"sessionId":"bc73eb26-9d28-bc7d-3b1e-a87f96c0bd87","role":"tester"},"messageId":0}
+09:22:15.637 detox[47556] i get
+  data: {"type":"login","params":{"sessionId":"bc73eb26-9d28-bc7d-3b1e-a87f96c0bd87","role":"tester"},"messageId":0}
+09:22:15.639 detox[47556] i created session bc73eb26-9d28-bc7d-3b1e-a87f96c0bd87
+09:22:15.640 detox[47556] i send
+  data: {
+    "type": "loginSuccess",
+    "params": {
+      "testerConnected": true,
+      "appConnected": false
+    },
+    "messageId": 0
+  }
+09:22:15.645 detox[47556] i tester joined session bc73eb26-9d28-bc7d-3b1e-a87f96c0bd87
+09:22:15.677 detox[36648] i get message
+  data: {"type":"loginSuccess","params":{"testerConnected":true,"appConnected":false},"messageId":0}
+   
+09:22:16.519 detox[36648] E set up environment
+  error: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,
+  Go to https://developer.android.com/studio/command-line/variables.html for more details
+09:22:16.521 detox[36648] B tear down environment
+09:22:16.544 detox[36648] E tear down environment
+09:22:16.544 detox[36648] E e2e\heartguard.comprehensive.test.js
+09:22:16.545 detox[47556] i tester exited session bc73eb26-9d28-bc7d-3b1e-a87f96c0bd87
+09:22:16.547 detox[47556] E connection :53198<->:52529
+09:22:16.740 detox[36648] i dispatching event to  primary-47556 /tmp/detox.primary-47556  :  reportTestResults , {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\e2e\\heartguard.comprehensive.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: '$ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details',
+        stack: 'DetoxRuntimeError: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details\n' +
+          '    at throwMissingSdkError (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:142:9)\n' +
+          '    at getAdbPath (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:126:28)\n' +
+          '    at new ADB (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\common\\drivers\\android\\exec\\ADB.js:27:19)\n' +
+          '    at Object.<anonymous> (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\servicelocator\\android\\index.js:17:29)\n' +
+          '    at Module._compile (node:internal/modules/cjs/loader:1761:14)\n' +
+          '    at Object..js (node:internal/modules/cjs/loader:1893:10)\n' +
+          '    at Module.load (node:internal/modules/cjs/loader:1481:32)\n' +
+          '    at Module._load (node:internal/modules/cjs/loader:1300:12)\n' +
+          '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+          '    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n' +
+          '    at Module.require (node:internal/modules/cjs/loader:1504:12)\n' +
+          '    at require (node:internal/modules/helpers:152:16)\n' +
+          '    at AndroidArtifactPluginsProvider.declareArtifactPlugins (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\providers\\index.js:7:28)\n' +
+          '    at Android.createArtifactsManager (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\factories\\index.js:21:61)\n' +
+          '    at DetoxWorker.init (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\DetoxWorker.js:150:54)\n' +
+          '    at init.next (<anonymous>)\n' +
+          '    at getNextResult (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\caf\\src\\caf.js:253:25)\n' +
+          '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+09:22:16.747 detox[47556] i received event of :  reportTestResults {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\e2e\\heartguard.comprehensive.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: '$ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details',
+        stack: 'DetoxRuntimeError: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details\n' +
+          '    at throwMissingSdkError (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:142:9)\n' +
+          '    at getAdbPath (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:126:28)\n' +
+          '    at new ADB (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\common\\drivers\\android\\exec\\ADB.js:27:19)\n' +
+          '    at Object.<anonymous> (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\servicelocator\\android\\index.js:17:29)\n' +
+          '    at Module._compile (node:internal/modules/cjs/loader:1761:14)\n' +
+          '    at Object..js (node:internal/modules/cjs/loader:1893:10)\n' +
+          '    at Module.load (node:internal/modules/cjs/loader:1481:32)\n' +
+          '    at Module._load (node:internal/modules/cjs/loader:1300:12)\n' +
+          '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+          '    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n' +
+          '    at Module.require (node:internal/modules/cjs/loader:1504:12)\n' +
+          '    at require (node:internal/modules/helpers:152:16)\n' +
+          '    at AndroidArtifactPluginsProvider.declareArtifactPlugins (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\providers\\index.js:7:28)\n' +
+          '    at Android.createArtifactsManager (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\factories\\index.js:21:61)\n' +
+          '    at DetoxWorker.init (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\DetoxWorker.js:150:54)\n' +
+          '    at init.next (<anonymous>)\n' +
+          '    at getNextResult (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\caf\\src\\caf.js:253:25)\n' +
+          '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+09:22:16.749 detox[36648] i ## received events ##
+09:22:16.749 detox[47556] i dispatching event to socket  :  reportTestResultsDone {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\e2e\\heartguard.comprehensive.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: '$ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details',
+        stack: 'DetoxRuntimeError: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details\n' +
+          '    at throwMissingSdkError (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:142:9)\n' +
+          '    at getAdbPath (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:126:28)\n' +
+          '    at new ADB (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\common\\drivers\\android\\exec\\ADB.js:27:19)\n' +
+          '    at Object.<anonymous> (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\servicelocator\\android\\index.js:17:29)\n' +
+          '    at Module._compile (node:internal/modules/cjs/loader:1761:14)\n' +
+          '    at Object..js (node:internal/modules/cjs/loader:1893:10)\n' +
+          '    at Module.load (node:internal/modules/cjs/loader:1481:32)\n' +
+          '    at Module._load (node:internal/modules/cjs/loader:1300:12)\n' +
+          '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+          '    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n' +
+          '    at Module.require (node:internal/modules/cjs/loader:1504:12)\n' +
+          '    at require (node:internal/modules/helpers:152:16)\n' +
+          '    at AndroidArtifactPluginsProvider.declareArtifactPlugins (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\providers\\index.js:7:28)\n' +
+          '    at Android.createArtifactsManager (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\factories\\index.js:21:61)\n' +
+          '    at DetoxWorker.init (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\DetoxWorker.js:150:54)\n' +
+          '    at init.next (<anonymous>)\n' +
+          '    at getNextResult (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\caf\\src\\caf.js:253:25)\n' +
+          '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+09:22:16.750 detox[36648] i detected event reportTestResultsDone {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\e2e\\heartguard.comprehensive.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: '$ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details',
+        stack: 'DetoxRuntimeError: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details\n' +
+          '    at throwMissingSdkError (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:142:9)\n' +
+          '    at getAdbPath (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:126:28)\n' +
+          '    at new ADB (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\common\\drivers\\android\\exec\\ADB.js:27:19)\n' +
+          '    at Object.<anonymous> (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\servicelocator\\android\\index.js:17:29)\n' +
+          '    at Module._compile (node:internal/modules/cjs/loader:1761:14)\n' +
+          '    at Object..js (node:internal/modules/cjs/loader:1893:10)\n' +
+          '    at Module.load (node:internal/modules/cjs/loader:1481:32)\n' +
+          '    at Module._load (node:internal/modules/cjs/loader:1300:12)\n' +
+          '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+          '    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n' +
+          '    at Module.require (node:internal/modules/cjs/loader:1504:12)\n' +
+          '    at require (node:internal/modules/helpers:152:16)\n' +
+          '    at AndroidArtifactPluginsProvider.declareArtifactPlugins (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\providers\\index.js:7:28)\n' +
+          '    at Android.createArtifactsManager (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\factories\\index.js:21:61)\n' +
+          '    at DetoxWorker.init (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\DetoxWorker.js:150:54)\n' +
+          '    at init.next (<anonymous>)\n' +
+          '    at getNextResult (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\caf\\src\\caf.js:253:25)\n' +
+          '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+09:22:16.750 detox[47556] i broadcasting event to all known sockets listening to  \\.\pipe\tmp-detox.primary-47556  :   sessionStateUpdate {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\e2e\\heartguard.comprehensive.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: '$ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details',
+        stack: 'DetoxRuntimeError: $ANDROID_SDK_ROOT is not defined, set the path to the SDK installation directory into $ANDROID_SDK_ROOT,\n' +
+          'Go to https://developer.android.com/studio/command-line/variables.html for more details\n' +
+          '    at throwMissingSdkError (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:142:9)\n' +
+          '    at getAdbPath (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\utils\\environment.js:126:28)\n' +
+          '    at new ADB (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\common\\drivers\\android\\exec\\ADB.js:27:19)\n' +
+          '    at Object.<anonymous> (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\devices\\servicelocator\\android\\index.js:17:29)\n' +
+          '    at Module._compile (node:internal/modules/cjs/loader:1761:14)\n' +
+          '    at Object..js (node:internal/modules/cjs/loader:1893:10)\n' +
+          '    at Module.load (node:internal/modules/cjs/loader:1481:32)\n' +
+          '    at Module._load (node:internal/modules/cjs/loader:1300:12)\n' +
+          '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+          '    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n' +
+          '    at Module.require (node:internal/modules/cjs/loader:1504:12)\n' +
+          '    at require (node:internal/modules/helpers:152:16)\n' +
+          '    at AndroidArtifactPluginsProvider.declareArtifactPlugins (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\providers\\index.js:7:28)\n' +
+          '    at Android.createArtifactsManager (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\artifacts\\factories\\index.js:21:61)\n' +
+          '    at DetoxWorker.init (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\detox\\src\\DetoxWorker.js:150:54)\n' +
+          '    at init.next (<anonymous>)\n' +
+          '    at getNextResult (C:\\Users\\raash\\Desktop\\AI-based Heart Disease Prediction and Health Monitoring System\\mobile\\node_modules\\caf\\src\\caf.js:253:25)\n' +
+          '    at processTicksAndRejections (node:internal/process/task_queues:103:5)'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+09:22:16.860 detox[36648] i connection closed primary-47556 /tmp/detox.primary-47556 0 tries remaining of 0
+09:22:16.860 detox[36648] i secondary-36648 exceeded connection rety amount of  or stopRetrying flag set.
+09:22:16.861 detox[47556] i socket disconnected secondary-36648
+09:22:17.862 detox[47556] E Command failed with exit code = 1:
+jest --config e2e/jest.config.js
+09:22:17.873 detox[47556] i Detox server has been closed gracefully
+09:22:17.884 detox[47556] E node_modules\detox\local-cli\cli.js test -c android.att.debug
