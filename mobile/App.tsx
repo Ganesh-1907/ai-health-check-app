@@ -831,7 +831,16 @@ function AppProvider({ children }: { children: React.ReactNode }) {
         if (result.canceled || !result.assets[0]) return;
 
         const asset = result.assets[0];
-        form.append("file", { uri: asset.uri, name: asset.name, type: asset.mimeType || "application/octet-stream" } as never);
+        if (Platform.OS === "web") {
+          const blob = await (await fetch(asset.uri)).blob();
+          form.append("file", blob, asset.name);
+        } else {
+          form.append("file", { 
+            uri: asset.uri, 
+            name: asset.name, 
+            type: asset.mimeType || "application/octet-stream" 
+          } as never);
+        }
       }
       const authHeaders = await getAuthHeaders();
       const response = await fetchWithTimeout(

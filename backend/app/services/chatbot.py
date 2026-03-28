@@ -9,7 +9,7 @@ from app.services.heart_knowledge import get_heart_knowledge_base
 
 
 class ChatbotService:
-    model_timeout_seconds = 3.0
+    model_timeout_seconds = 20.0
 
     def __init__(self) -> None:
         self.settings = get_settings()
@@ -45,13 +45,14 @@ class ChatbotService:
             history=history or [],
             triage=triage,
         )
-        model_candidates = list(dict.fromkeys([self.settings.ollama_model, "llama3.2:latest"]))
+        # Use first configured model, then a fallback local model name
+        model_candidates = list(dict.fromkeys([self.settings.ollama_model, "llama3.2:latest", "llama3.1:8b"]))
         for model_name in model_candidates:
             try:
                 async with httpx.AsyncClient(
                     timeout=httpx.Timeout(
                         self.model_timeout_seconds,
-                        connect=1.5,
+                        connect=2.0,
                         read=self.model_timeout_seconds,
                         write=self.model_timeout_seconds,
                         pool=self.model_timeout_seconds,
@@ -63,19 +64,19 @@ class ChatbotService:
                             "model": model_name,
                             "stream": False,
                             "options": {
-                                "temperature": 0.2,
-                                "num_predict": 220,
+                                "temperature": 0.4, # Slightly higher for more variety
+                                "num_predict": 300,
                             },
                             "messages": [
                                 {
                                     "role": "system",
                                     "content": (
-                                        "You are a heart-health virtual assistant for a health monitoring app. "
-                                        "Ground your answer in the provided user data. "
-                                        "Never present a final diagnosis. "
-                                        "If chest pain with sweating, fainting, severe breathlessness, or dangerous uploaded report findings appear, advise urgent emergency care. "
-                                        "Keep answers structured, practical, safe, and specific to the user's current profile. "
-                                        "Do not repeat the input dump back to the user."
+                                        "You are an expert heart-health virtual assistant for the HeartGuard AI app. "
+                                        "Ground your answer in the provided user health snapshots. "
+                                        "Provide a conversational, practical, and safe response. "
+                                        "Do not repeat the provided data back to the user; instead, interpret what it means for their heart health. "
+                                        "If danger signals appear (chest pain, severe breathlessness, fainting), emphasize urgent care. "
+                                        "Keep your answer under 250 tokens and focus on the user's specific health profile."
                                     ),
                                 },
                                 {"role": "user", "content": prompt},
@@ -119,21 +120,18 @@ class ChatbotService:
         latest_log = recent_logs[0] if recent_logs else None
         history_block = "\n".join([f"{item.role}: {item.content}" for item in history[-2:]])
         return (
-            f"Question: {message}\n"
-            f"User: {user.age} years old, {user.gender}, location {user.location}.\n"
-            f"Risk: {prediction.risk_level if prediction else 'unknown'} at {prediction.risk_score if prediction else 'n/a'}%.\n"
-            f"Symptoms: {assessment.symptoms if assessment else []}.\n"
-            f"Key red flags: {triage.red_flags}.\n"
-            f"Latest log: BP {latest_log.systolic_bp if latest_log else 'n/a'}/{latest_log.diastolic_bp if latest_log else 'n/a'}, sugar {latest_log.blood_sugar if latest_log else 'n/a'}, sleep {latest_log.sleep_hours if latest_log else 'n/a'}.\n"
-            f"Latest report metrics: {report_metrics or {}}.\n"
-            f"Useful evidence: {evidence_block}.\n"
-            f"Care actions already recommended: {triage.care_actions}.\n"
-            f"Conversation context: {history_block or '- none'}.\n"
-            "Reply in exactly 4 labeled lines and do not repeat the input:\n"
-            "Direct answer:\n"
-            "Why it matters:\n"
-            "Monitor next:\n"
-            "Urgent care:"
+            f"User Question: {message}\n"
+            f"Current Stats: {user.age} year old {user.gender}. Risk: {prediction.risk_level if prediction else 'unk'} at {prediction.risk_score if prediction else 'n/a'}%.\n"
+            f"Symptoms: {assessment.symptoms if assessment else []}. Red flags: {triage.red_flags}.\n"
+            f"Last reading: BP {latest_log.systolic_bp if latest_log else 'n/a'}/{latest_log.diastolic_bp if latest_log else 'n/a'}, Sugar {latest_log.blood_sugar if latest_log else 'n/a'}.\n"
+            f"Report findings: {report_metrics or {}}.\n"
+            f"Clinical Context: {evidence_block}.\n"
+            f"Recent Context: {history_block or 'Initial message'}.\n"
+            "Respond conversationally to the user's question. Structure your response with:\n"
+            "1. A direct, clear answer.\n"
+            "2. 'Why it matters' (context from their risk/symptoms).\n"
+            "3. 'Next steps' (practical advice).\n"
+            "4. 'Safety Note' (if urgent factors exist)."
         )
 
     @staticmethod
@@ -144,29 +142,25 @@ class ChatbotService:
         triage: HeartTriageSummary,
     ) -> str:
         if not prediction:
-            return "\n".join(
-                [
-                    "Direct answer: I can help, but I need more of your profile or assessment data first.",
-                    "Why it matters: without recent readings, symptoms, or reports I may miss important heart-risk context.",
-                    "Monitor next: complete the assessment, upload any recent report, and log BP, sugar, symptoms, and sleep.",
-                    "Urgent care: if you have chest pain with sweating, fainting, or severe breathlessness, seek emergency care now.",
-                ]
+            return (
+                "Direct answer: I'm here to support your heart health, but I need your assessment data to provide specific insights.\n\n"
+                "Why it matters: Personal health data like symptoms and BP readings help me give safe, tailored guidance.\n\n"
+                "Next steps: Please complete your first AI assessment or log your vitals in the 'Tracking' tab.\n\n"
+                "Safety Note: If you experience chest pain or fainting, seek emergency care immediately."
             )
 
-        symptom_text = ", ".join(assessment.symptoms) if assessment else "current symptoms not available"
-        advice = recommendation.daily_tips[0] if recommendation and recommendation.daily_tips else "Monitor your values closely."
-        urgent_line = ", ".join(triage.red_flags) if triage.red_flags else "No immediate emergency signal is obvious from the latest saved data."
+        symptom_text = ", ".join(assessment.symptoms) if (assessment and assessment.symptoms) else "no recent symptoms"
+        advice = recommendation.daily_tips[0] if (recommendation and recommendation.daily_tips) else "Monitor your heart health trends closely."
+        urgent_line = ", ".join(triage.red_flags) if triage.red_flags else "No immediate emergency signals detected from your recent data."
         why_line = (
-            f"Your latest saved risk snapshot is {prediction.risk_level} at {prediction.risk_score}%, "
-            f"and the current symptom context is {symptom_text}."
+            f"Your latest risk level is {prediction.risk_level} ({prediction.risk_score}%) "
+            f"with {symptom_text} recorded."
         )
-        return "\n".join(
-            [
-                f"Direct answer: {advice}",
-                f"Why it matters: {why_line}",
-                "Monitor next: keep logging BP, sugar, symptoms, activity, sleep, and any new report findings.",
-                f"Urgent care: {urgent_line} Consult a doctor for diagnosis and treatment.",
-            ]
+        return (
+            f"Direct answer: {advice}\n\n"
+            f"Why it matters: {why_line}\n\n"
+            "Next steps: Continue logging your vitals daily and follow your personalized diet tips.\n\n"
+            f"Safety Note: {urgent_line} Always consult your doctor for medical decisions."
         )
 
     @staticmethod
