@@ -6,6 +6,34 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# ─── Auth ────────────────────────────────────────────────────────────────────
+
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    age: int
+    gender: str
+    location: str = ""
+    contact_number: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: str
+    name: str
+
+
+# ─── User ─────────────────────────────────────────────────────────────────────
+
 class UserCreate(BaseModel):
     name: str
     age: int
@@ -26,13 +54,23 @@ class UserUpdate(BaseModel):
     longitude: float | None = None
 
 
-class UserRead(UserCreate):
-    id: int
+class UserRead(BaseModel):
+    id: str
+    name: str
+    age: int
+    gender: str
+    location: str
+    contact_number: str
+    email: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ─── Assessment ───────────────────────────────────────────────────────────────
 
 class AssessmentCreate(BaseModel):
     systolic_bp: float | None = None
@@ -50,8 +88,8 @@ class AssessmentCreate(BaseModel):
 
 
 class AssessmentRead(AssessmentCreate):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     bmi: float | None = None
     created_at: datetime
     updated_at: datetime
@@ -59,9 +97,11 @@ class AssessmentRead(AssessmentCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Risk Prediction ──────────────────────────────────────────────────────────
+
 class RiskPredictionRead(BaseModel):
-    id: int
-    assessment_id: int
+    id: str
+    assessment_id: str
     risk_score: float
     risk_level: str
     confidence: float
@@ -72,6 +112,8 @@ class RiskPredictionRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ─── Daily Log ────────────────────────────────────────────────────────────────
 
 class DailyLogCreate(BaseModel):
     log_date: date
@@ -85,17 +127,19 @@ class DailyLogCreate(BaseModel):
 
 
 class DailyLogRead(DailyLogCreate):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Medical Report ───────────────────────────────────────────────────────────
+
 class MedicalReportRead(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     report_type: str
     file_name: str
     content_type: str
@@ -107,10 +151,12 @@ class MedicalReportRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Recommendation ───────────────────────────────────────────────────────────
+
 class RecommendationRead(BaseModel):
-    id: int
-    user_id: int
-    assessment_id: int | None = None
+    id: str
+    user_id: str
+    assessment_id: str | None = None
     diet_plan: list[str]
     foods_to_avoid: list[str]
     medicine_guidance: list[str]
@@ -121,9 +167,11 @@ class RecommendationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Alert ────────────────────────────────────────────────────────────────────
+
 class AlertRead(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     severity: str
     title: str
     message: str
@@ -133,6 +181,8 @@ class AlertRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ─── Care Search ──────────────────────────────────────────────────────────────
 
 class CareSearchRequest(BaseModel):
     latitude: float
@@ -152,8 +202,10 @@ class CareLocation(BaseModel):
     source: str = ""
 
 
+# ─── Chat ─────────────────────────────────────────────────────────────────────
+
 class ChatRequest(BaseModel):
-    user_id: int
+    user_id: str
     message: str
 
 
@@ -164,8 +216,8 @@ class ChatResponse(BaseModel):
 
 
 class ChatMessageRead(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     role: str
     content: str
     metadata_json: dict[str, Any]
@@ -174,6 +226,8 @@ class ChatMessageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Dashboard ────────────────────────────────────────────────────────────────
+
 class DashboardRead(BaseModel):
     user: UserRead
     latest_assessment: AssessmentRead | None = None
@@ -181,4 +235,5 @@ class DashboardRead(BaseModel):
     latest_recommendation: RecommendationRead | None = None
     active_alerts: list[AlertRead] = Field(default_factory=list)
     recent_daily_logs: list[DailyLogRead] = Field(default_factory=list)
+    past_predictions: list[RiskPredictionRead] = Field(default_factory=list)
     reports: list[MedicalReportRead] = Field(default_factory=list)

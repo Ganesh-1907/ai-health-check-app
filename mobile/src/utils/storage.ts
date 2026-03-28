@@ -1,46 +1,61 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const isWeb = Platform.OS === "web";
-
-function getWebStorage(): Storage | null {
-  if (typeof localStorage === "undefined") {
-    return null;
-  }
-  return localStorage;
-}
-
+/**
+ * Cross-platform storage utility for React Native and Expo Web.
+ * Uses expo-secure-store on mobile and localStorage on web.
+ */
 export const storage = {
-  async set(key: string, value: string) {
-    if (isWeb) {
-      const webStorage = getWebStorage();
-      if (webStorage) {
-        webStorage.setItem(key, value);
+  /**
+   * Save a string value to persistent storage.
+   */
+  async set(key: string, value: string): Promise<void> {
+    try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(key, value);
+        }
+      } else {
+        await SecureStore.setItemAsync(key, value);
       }
-      return;
+    } catch (error) {
+      console.error(`[Storage] Failed to set ${key}:`, error);
     }
-
-    await SecureStore.setItemAsync(key, value);
   },
 
-  async get(key: string) {
-    if (isWeb) {
-      const webStorage = getWebStorage();
-      return webStorage ? webStorage.getItem(key) : null;
+  /**
+   * Retrieve a string value from persistent storage.
+   * Returns null if the key does not exist or if storage is unavailable.
+   */
+  async get(key: string): Promise<string | null> {
+    try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          return localStorage.getItem(key);
+        }
+        return null;
+      }
+      return await SecureStore.getItemAsync(key);
+    } catch (error) {
+      console.error(`[Storage] Failed to get ${key}:`, error);
+      return null;
     }
-
-    return await SecureStore.getItemAsync(key);
   },
 
-  async remove(key: string) {
-    if (isWeb) {
-      const webStorage = getWebStorage();
-      if (webStorage) {
-        webStorage.removeItem(key);
+  /**
+   * Remove a value from persistent storage.
+   */
+  async remove(key: string): Promise<void> {
+    try {
+      if (Platform.OS === "web") {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(key);
+        }
+      } else {
+        await SecureStore.deleteItemAsync(key);
       }
-      return;
+    } catch (error) {
+      console.error(`[Storage] Failed to remove ${key}:`, error);
     }
-
-    await SecureStore.deleteItemAsync(key);
   },
 };

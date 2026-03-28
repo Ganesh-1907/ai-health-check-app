@@ -1,7 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,21 +9,22 @@ class Settings(BaseSettings):
 
     app_name: str = "HeartGuard AI"
     api_prefix: str = "/api/v1"
-    database_url: str = "sqlite:///./data/heartguard.db"
+    mongodb_url: str = "mongodb://localhost:27017/heart-disease"
     storage_dir: str = "./storage"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:latest"
     ollama_vision_model: str = "qwen2.5vl:latest"
     google_places_api_key: str = ""
-    allowed_origins: list[str] = ["http://localhost:8081", "http://localhost:19006"]
+    # Stored as a comma-separated string so pydantic-settings doesn't try JSON-parse it
+    allowed_origins: str = "http://localhost:8081,http://localhost:19006"
     risk_model_path: str = "./ml/models/heart_risk_model.joblib"
+    jwt_secret: str = "changeme_use_a_long_random_string_in_production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
-    @field_validator("allowed_origins", mode="before")
-    @classmethod
-    def split_origins(cls, value: str | list[str]) -> list[str]:
-        if isinstance(value, list):
-            return value
-        return [item.strip() for item in value.split(",") if item.strip()]
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [item.strip() for item in self.allowed_origins.split(",") if item.strip()]
 
     @property
     def storage_path(self) -> Path:
@@ -39,6 +39,5 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     settings = Settings()
     settings.storage_path.mkdir(parents=True, exist_ok=True)
-    Path("data").mkdir(parents=True, exist_ok=True)
     settings.risk_model_artifact.parent.mkdir(parents=True, exist_ok=True)
     return settings

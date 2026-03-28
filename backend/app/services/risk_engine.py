@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.models.entities import Assessment, MedicalReport
+from app.models.entities import Assessment, MedicalReport, User
 from app.services.trained_risk_model import get_trained_risk_model
 
 
@@ -36,11 +36,12 @@ class RiskEngine:
     def __init__(self) -> None:
         self.trained_model = get_trained_risk_model()
 
-    def score(self, assessment: Assessment, reports: list[MedicalReport] | None = None) -> RiskResult:
+    def score(self, assessment: Assessment, user: User, reports: list[MedicalReport] | None = None) -> RiskResult:
         report_signals = self._derive_report_signals(reports or [])
-        heuristic_score, explanation, red_flags = self._heuristic_score(assessment, report_signals.overrides)
+        heuristic_score, explanation, red_flags = self._heuristic_score(assessment, user, report_signals.overrides)
         model_probability, model_meta = self.trained_model.predict_probability(
             assessment,
+            user=user,
             metric_overrides=report_signals.overrides,
         )
 
@@ -92,6 +93,7 @@ class RiskEngine:
     def _heuristic_score(
         self,
         assessment: Assessment,
+        user: User,
         overrides: dict[str, float] | None = None,
     ) -> tuple[float, list[str], list[str]]:
         score = 10.0
@@ -107,10 +109,10 @@ class RiskEngine:
         cholesterol = effective.get("cholesterol", assessment.cholesterol)
         heart_rate = effective.get("heart_rate", assessment.heart_rate)
 
-        if assessment.user.age >= 60:
+        if user.age >= 60:
             score += 12
             explanation.append("Age is increasing baseline cardiovascular risk.")
-        elif assessment.user.age >= 45:
+        elif user.age >= 45:
             score += 7
             explanation.append("Age contributes moderate baseline cardiovascular risk.")
 

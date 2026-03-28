@@ -7,7 +7,7 @@ import joblib
 import pandas as pd
 
 from app.core.config import get_settings
-from app.models.entities import Assessment
+from app.models.entities import Assessment, User
 
 
 MODEL_FEATURES = [
@@ -45,6 +45,7 @@ class TrainedRiskModel:
     def predict_probability(
         self,
         assessment: Assessment,
+        user: User,
         metric_overrides: dict[str, float] | None = None,
     ) -> tuple[float | None, dict[str, Any]]:
         if not self.available or self.pipeline is None:
@@ -58,8 +59,8 @@ class TrainedRiskModel:
         blood_sugar = overrides.get("blood_sugar", assessment.blood_sugar)
 
         feature_row = {
-            "age": assessment.user.age,
-            "sex_male": 1.0 if str(assessment.user.gender).strip().lower() in {"male", "m"} else 0.0,
+            "age": user.age,
+            "sex_male": 1.0 if str(user.gender).strip().lower() in {"male", "m"} else 0.0,
             "systolic_bp": systolic_bp,
             "diastolic_bp": diastolic_bp,
             "cholesterol": cholesterol,

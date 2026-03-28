@@ -1,24 +1,42 @@
-from collections.abc import Generator
+from __future__ import annotations
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+import beanie
+import motor.motor_asyncio
 
 from app.core.config import get_settings
 
 
-settings = get_settings()
+async def init_db() -> None:
+    settings = get_settings()
+    client: motor.motor_asyncio.AsyncIOMotorClient = motor.motor_asyncio.AsyncIOMotorClient(
+        settings.mongodb_url
+    )
+    # Extract the database name from the URL (last path segment)
+    db_name = settings.mongodb_url.rsplit("/", 1)[-1] or "heart-disease"
+    database = client[db_name]
 
-engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
-)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-Base = declarative_base()
+    # Import document classes here to avoid circular imports
+    from app.models.entities import (
+        Alert,
+        Assessment,
+        ChatMessage,
+        DailyLog,
+        MedicalReport,
+        RecommendationPlan,
+        RiskPrediction,
+        User,
+    )
 
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    await beanie.init_beanie(
+        database=database,
+        document_models=[
+            User,
+            Assessment,
+            RiskPrediction,
+            DailyLog,
+            MedicalReport,
+            RecommendationPlan,
+            Alert,
+            ChatMessage,
+        ],
+    )
