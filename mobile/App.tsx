@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   NativeModules,
   Platform,
   Pressable,
@@ -42,7 +43,12 @@ const tokenKey = "heartguard-auth-token";
 const userIdKey = "heartguard-user-id";
 const isE2EMode = process.env.EXPO_PUBLIC_E2E_MODE === "1";
 
-type RootStackParamList = { Login: undefined; Signup: undefined; Main: undefined };
+type RootStackParamList = { 
+  Login: undefined; 
+  Signup: undefined; 
+  Main: undefined; 
+  AssessmentResult: { result: AssessmentResponse };
+};
 type MainTabParamList = {
   Dashboard: undefined;
   Assessment: undefined;
@@ -114,6 +120,30 @@ function resolveApiBaseUrl(): string {
 
 const apiBaseUrl = resolveApiBaseUrl();
 
+function getWeeklyStats(logs: DailyLogEntry[]) {
+  // Get unique logs per day to avoid duplicates showing up in the graph
+  const uniqueLogsMap = new Map();
+  logs.forEach(l => {
+    const date = l.log_date?.slice(0, 10);
+    if (date && !uniqueLogsMap.has(date)) {
+      uniqueLogsMap.set(date, l);
+    }
+  });
+  
+  const uniqueLogs = Array.from(uniqueLogsMap.values())
+    .sort((a: any, b: any) => b.log_date.localeCompare(a.log_date))
+    .slice(0, 7)
+    .reverse();
+
+  if (!uniqueLogs.length) return null;
+  return {
+    steps: uniqueLogs.map((l: any) => l.steps || 0),
+    sys: uniqueLogs.map((l: any) => l.systolic_bp || 120),
+    sleep: uniqueLogs.map((l: any) => l.sleep_hours || 0),
+    dates: uniqueLogs.map((l: any) => l.log_date?.split("-")[2] || "?"), 
+  };
+}
+
 type ChatMessage = {
   id: string;
   role: "assistant" | "user";
@@ -126,6 +156,8 @@ type PastPrediction = {
   risk_level: string;
   confidence: number;
   explanation: string[];
+  red_flags: string[];
+  summary: string;
   created_at: string;
 };
 
@@ -183,6 +215,12 @@ type DashboardPayload = {
     extraction_confidence: number;
   }>;
   past_predictions: Array<PastPrediction>;
+};
+
+type AssessmentResponse = {
+  assessment: DashboardPayload["latest_assessment"];
+  prediction: PastPrediction;
+  recommendation?: DashboardPayload["latest_recommendation"];
 };
 
 type CareLocation = {
@@ -251,7 +289,7 @@ type AppState = {
   latestReportMessage: string;
   isAuthenticated: boolean;
   refreshDashboard: () => Promise<void>;
-  submitAssessment: (payload: AssessmentFormState, selectedSymptoms: string[], onSuccess?: () => void) => Promise<void>;
+  submitAssessment: (payload: AssessmentFormState, selectedSymptoms: string[], onSuccess?: (res: AssessmentResponse) => void) => Promise<void>;
   submitDailyLog: (payload: DailyLogFormState, logDate: string) => Promise<void>;
   sendChat: (message: string) => Promise<void>;
   resetChat: () => void;
@@ -689,7 +727,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const submitAssessment = async (
     payload: AssessmentFormState,
     selectedSymptoms: string[],
-    onSuccess?: () => void,
+    onSuccess?: (res: AssessmentResponse) => void,
   ) => {
     if (!userId) return;
     setSyncing(true);
@@ -707,7 +745,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       const bp = parseBp(payload.bp);
-      await fetchJson(`/users/${activeUserId}/assessments`, {
+      const res = await fetchJson<AssessmentResponse>(`/users/${activeUserId}/v2-assessments`, {
         method: "POST",
         body: JSON.stringify({
           systolic_bp: bp.systolic,
@@ -739,8 +777,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       });
       await refreshDashboard();
-      showAppAlert("Assessment Saved", "Heart-risk profile has been refreshed from the backend.");
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(res);
     } catch (error) {
       showAppAlert("Assessment Error", formatAppError(error));
     } finally {
@@ -956,7 +993,10 @@ function AppShell() {
       <StatusBar barStyle="dark-content" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen component={MainTabs} name="Main" />
+          <>
+            <Stack.Screen component={MainTabs} name="Main" />
+            <Stack.Screen component={AssessmentResultScreen} name="AssessmentResult" />
+          </>
         ) : (
           <>
             <Stack.Screen component={LoginScreen} name="Login" />
@@ -1173,6 +1213,203 @@ function SignupScreen() {
   );
 }
 
+function AssessmentResultScreen({ route }: { route: any }) {
+  const navigation = useNavigation<any>();
+  const res = route.params?.result as AssessmentResponse;
+  
+  if (!res || !res.prediction) {
+    return (
+      <Screen testID="error-result-screen">
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 30 }}>
+            <Ionicons name="bug-outline" size={80} color={palette.danger} />
+            <Text style={{ fontSize: 24, fontWeight: "900", color: palette.ink, marginTop: 20 }}>Load Error</Text>
+            <Text style={{ textAlign: "center", color: palette.muted, marginTop: 12, lineHeight: 22 }}>
+              We couldn't load your heart health analysis. Please try again from the home screen.
+            </Text>
+            <PrimaryButton label="Go back to Dashboard" onPress={() => navigation.navigate("Main", { screen: "Dashboard" })} style={{ marginTop: 30 }} />
+        </View>
+      </Screen>
+    );
+  }
+
+  const { prediction, assessment, recommendation } = res;
+  const isHigh = prediction.risk_level === "High";
+  const isMed = prediction.risk_level === "Medium";
+  const themeColor = isHigh ? palette.danger : isMed ? palette.warning : "#2e7d32";
+
+  return (
+    <Screen testID="screen-assessment-result">
+      <LinearGradient colors={[themeColor, themeColor + "DD"]} style={{ padding: 40, alignItems: "center", borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}>
+        <Ionicons name={isHigh ? "warning" : isMed ? "alert-circle" : "checkmark-circle"} size={80} color="#fff" />
+        <Text style={{ color: "#fff", fontSize: 34, fontWeight: "900", marginTop: 16, letterSpacing: 1, textAlign: "center" }}>
+          {prediction.risk_level.toUpperCase()} RISK
+        </Text>
+        <View style={{ backgroundColor: "rgba(255,255,255,0.25)", paddingHorizontal: 24, paddingVertical: 8, borderRadius: 24, marginTop: 16 }}>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>Health Score: {Math.round(prediction.risk_score)}%</Text>
+        </View>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <SectionCard title="AI Diagnostic Summary" subtitle="What our analysis found">
+           <Text style={{ color: palette.ink, lineHeight: 26, fontSize: 17, opacity: 0.9 }}>{prediction.summary}</Text>
+        </SectionCard>
+
+        <View style={{ height: 16 }} />
+
+        <SectionCard title="Heart-Healthy Diet Goals" subtitle="Personalized nutrition guide">
+          <View style={{ gap: 14 }}>
+            {(assessment?.bmi && assessment.bmi > 25) && (
+              <View style={{ backgroundColor: "rgba(226,149,71,0.1)", padding: 12, borderRadius: 12, marginBottom: 8 }}>
+                <Text style={{ color: palette.accent, fontWeight: "700" }}>Weight Management: Your BMI is slightly high. Focus on portion control.</Text>
+              </View>
+            )}
+            {(recommendation?.diet_plan && recommendation.diet_plan.length > 0) ? recommendation.diet_plan.map((item: string, idx: number) => (
+              <View key={idx} style={{ flexDirection: "row", gap: 12 }}>
+                <Ionicons name="restaurant" size={20} color={palette.brand} style={{ marginTop: 2 }} />
+                <Text style={{ flex: 1, color: palette.ink, fontSize: 15, lineHeight: 22 }}>{item}</Text>
+              </View>
+            )) : <Text style={{ color: palette.muted, fontStyle: "italic" }}>No specific diet goals recommended at this time.</Text>}
+          </View>
+        </SectionCard>
+
+        <View style={{ height: 16 }} />
+
+        <SectionCard title="Foods To Avoid" subtitle="Reduce heart stress triggers">
+           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              {(recommendation?.foods_to_avoid && recommendation.foods_to_avoid.length > 0) ? recommendation.foods_to_avoid.map((food: string, idx: number) => (
+                <View key={idx} style={{ backgroundColor: "rgba(231,76,60,0.1)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: "rgba(231,76,60,0.2)" }}>
+                  <Text style={{ color: palette.danger, fontSize: 13, fontWeight: "700" }}>✕ {food}</Text>
+                </View>
+              )) : <Text style={{ color: palette.muted, fontStyle: "italic" }}>No specific foods to avoid reported.</Text>}
+            </View>
+        </SectionCard>
+
+        <View style={{ height: 16 }} />
+
+        {isHigh && (
+          <View style={{ marginTop: 10, padding: 20, backgroundColor: "rgba(231,76,60,0.1)", borderRadius: 20, borderLeftWidth: 6, borderLeftColor: palette.danger }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+              <Ionicons name="warning" size={28} color={palette.danger} />
+              <Text style={{ color: palette.danger, fontWeight: "900", fontSize: 18 }}>IMMEDIATE ACTION REQUIRED</Text>
+            </View>
+            <Text style={{ color: palette.danger, fontSize: 15, lineHeight: 22, fontWeight: "600" }}>
+              Our AI analysis indicates high heart risk parameters. You MUST visit a doctor or nearest hospital immediately for professional evaluation.
+            </Text>
+          </View>
+        )}
+
+        <View style={{ height: 30 }} />
+
+        <View style={{ gap: 16 }}>
+           {isHigh ? (
+             <PrimaryButton 
+               label="FIND NEAREST HOSPITALS NOW" 
+               onPress={() => navigation.navigate("Main", { screen: "Care" })} 
+               style={{ backgroundColor: palette.danger, height: 60 }}
+             />
+           ) : isMed ? (
+             <PrimaryButton 
+               label="CONSULT AI ASSISTANT" 
+               onPress={() => navigation.navigate("Main", { screen: "Assistant" })} 
+               style={{ height: 60 }}
+             />
+           ) : (
+             <PrimaryButton 
+               label="GO TO HOME PAGE" 
+               onPress={() => navigation.navigate("Main", { screen: "Dashboard" })} 
+               style={{ height: 60 }}
+             />
+           )}
+           
+           <Pressable 
+             onPress={() => navigation.navigate("Main", { screen: "Dashboard" })}
+             style={{ paddingVertical: 16, borderRadius: 16, alignItems: "center", backgroundColor: "#f0f2f5" }}
+           >
+             <Text style={{ color: palette.muted, fontWeight: "700" }}>Return to Dashboard</Text>
+           </Pressable>
+        </View>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function AssessmentResultCard({ 
+  prediction, 
+  recommendation, 
+  onAction 
+}: { 
+  prediction: PastPrediction; 
+  recommendation?: DashboardPayload["latest_recommendation"]; 
+  onAction: (target: keyof MainTabParamList) => void 
+}) {
+  const isHigh = prediction.risk_level === "High";
+  const isMed = prediction.risk_level === "Medium";
+  const themeColor = isHigh ? palette.danger : isMed ? palette.warning : "#2e7d32";
+
+  return (
+    <View style={{ padding: 16 }}>
+      <View style={{ backgroundColor: "#fff", borderRadius: 24, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 }}>
+        <LinearGradient colors={[themeColor, themeColor + "CC"]} style={{ padding: 20 }}>
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800", letterSpacing: 1, opacity: 0.9 }}>YOUR ASSESSMENT RESULT IS</Text>
+          <Text style={{ color: "#fff", fontSize: 26, fontWeight: "900", marginTop: 4 }}>{prediction.risk_level.toUpperCase()} RISK</Text>
+        </LinearGradient>
+
+        <View style={{ padding: 20, gap: 20 }}>
+          <View>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: palette.brand, marginBottom: 8 }}>DIET GOALS & MEALS</Text>
+            {(recommendation?.diet_plan || fallbackDietPlan).map((item, idx) => (
+              <View key={idx} style={{ flexDirection: "row", gap: 10, marginBottom: 6 }}>
+                <Ionicons name="restaurant-outline" size={16} color={palette.brand} style={{ marginTop: 2 }} />
+                <Text style={{ flex: 1, color: palette.ink, fontSize: 14, lineHeight: 20 }}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: palette.accent, marginBottom: 8 }}>FOODS TO AVOID</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {(recommendation?.foods_to_avoid || fallbackFoodsToAvoid).map((food, idx) => (
+                <View key={idx} style={{ backgroundColor: "rgba(226,149,71,0.1)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderColor: "rgba(226,149,71,0.2)", borderWidth: 1 }}>
+                  <Text style={{ color: palette.accent, fontSize: 12, fontWeight: "700" }}>✕ {food}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: palette.line }} />
+
+          {isHigh ? (
+            <View style={{ gap: 12 }}>
+              <View style={{ backgroundColor: "rgba(231,76,60,0.05)", padding: 12, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: palette.danger }}>
+                <Text style={{ color: palette.danger, fontWeight: "800", fontSize: 14 }}>⚠️ URGENT MEDICAL REVIEW NEEDED</Text>
+                <Text style={{ color: palette.danger, fontSize: 12, marginTop: 4 }}>Please visit the nearest hospital immediately for a professional checkup.</Text>
+              </View>
+              <PrimaryButton 
+                label="Find Nearest Hospital Now" 
+                onPress={() => onAction("Care")} 
+                style={{ backgroundColor: palette.danger }}
+              />
+            </View>
+          ) : isMed ? (
+            <View style={{ gap: 12 }}>
+              <Text style={{ color: palette.muted, fontSize: 13, textAlign: "center", fontStyle: "italic" }}>Have doubts about these results?</Text>
+              <PrimaryButton 
+                label="Check Doubts with AI Assistant" 
+                onPress={() => onAction("Assistant")} 
+              />
+            </View>
+          ) : (
+            <View style={{ backgroundColor: "rgba(46,125,50,0.05)", padding: 12, borderRadius: 12, alignItems: "center" }}>
+              <Text style={{ color: "#2e7d32", fontWeight: "800", fontSize: 14 }}>🌟 GREAT WORK!</Text>
+              <Text style={{ color: "#2e7d32", fontSize: 12, marginTop: 2 }}>Keep following your heart-healthy routine.</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function DashboardScreen() {
   const navigation = useNavigation<MainTabNav>();
   const { dashboard, refreshDashboard, syncing, logoutUser } = useAppState();
@@ -1190,6 +1427,8 @@ function DashboardScreen() {
   const avgSugar = calculateAverage("blood_sugar");
   const avgSleep = calculateAverage("sleep_hours");
   const avgSteps = calculateAverage("steps");
+
+  const weeklyStats = useMemo(() => getWeeklyStats(logs), [logs]);
 
   const getStatusColor = (label: string, value: number | string | null) => {
     if (value === null || value === "--") return palette.ink;
@@ -1301,6 +1540,7 @@ function DashboardScreen() {
 
       {hasAssessment && (
         <>
+
           <View style={styles.metricGrid} testID="dashboard-metric-grid">
             {metricCards.map((metric: any) => (
               <View key={metric.label} style={styles.metricCard} testID={`dashboard-metric-${toTestIdSegment(metric.label)}`}>
@@ -1323,45 +1563,66 @@ function DashboardScreen() {
         </>
       )}
 
-      {hasAssessment && dashboard?.reports && dashboard.reports.length > 0 && (
-        <SectionCard subtitle="Latest assessment from medical records" title="Report Extraction Result" testID="dashboard-report-result-card">
-          <View style={styles.alertCard}>
-            <Ionicons name="document-text" size={20} color={palette.brand} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "700", color: palette.ink }}>{dashboard.reports[0].report_type}</Text>
-              <Text style={styles.helperText} numberOfLines={2}>
-                {JSON.stringify(dashboard.reports[0].extracted_findings)}
-              </Text>
-            </View>
-          </View>
-        </SectionCard>
-      )}
-
       {hasAssessment && (
         <>
-          <SectionCard subtitle="Dynamic guidance surface" title="Daily Tips" testID="dashboard-daily-tips-card">
-            {(recommendation?.daily_tips || fallbackDietPlan).slice(0, 3).map((tip: string, index: number) => (
-              <Text key={tip} style={styles.listItem} testID={`dashboard-daily-tip-${index + 1}`}>
-                - {tip}
-              </Text>
-            ))}
+          <SectionCard subtitle="Weekly health variations & trends" title="Trend Analytics" testID="dashboard-trend-analytics-card">
+            {weeklyStats ? (
+              <View style={{ gap: 24, paddingVertical: 10 }}>
+                <View>
+                  <Text style={{ fontWeight: "800", fontSize: 16, marginBottom: 8, color: palette.brand }}>Daily Steps</Text>
+                  <TrendLineGraph color={palette.brand} points={weeklyStats.steps} maxScale={10000} xLabels={weeklyStats.dates} />
+                </View>
+                <View>
+                  <Text style={{ fontWeight: "800", fontSize: 16, marginBottom: 8, color: palette.danger }}>Systolic Blood Pressure</Text>
+                  <TrendLineGraph color={palette.danger} points={weeklyStats.sys} maxScale={200} xLabels={weeklyStats.dates} />
+                </View>
+                <View>
+                  <Text style={{ fontWeight: "800", fontSize: 16, marginBottom: 8, color: palette.cool }}>Sleep Duration (Hrs)</Text>
+                  <TrendLineGraph color={palette.cool} points={weeklyStats.sleep} maxScale={12} xLabels={weeklyStats.dates} />
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.helperText}>Add logs to unlock premium trend analytics.</Text>
+            )}
           </SectionCard>
 
-          <SectionCard subtitle="Personalized heart-friendly meals" title="Diet Plan" testID="dashboard-diet-plan-card">
-            {(recommendation?.diet_plan || fallbackDietPlan).map((item: string, index: number) => (
-              <Text key={item} style={styles.listItem} testID={`dashboard-diet-item-${index + 1}`}>
-                - {item}
+          <SectionCard subtitle="Consolidated weekly performance" title="Weekly Health Report" testID="dashboard-weekly-report-card">
+             <LinearGradient 
+              colors={["rgba(13,110,110,0.05)", "rgba(13,110,110,0.02)"]} 
+              style={{ padding: 16, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: palette.brand }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: palette.brand, marginBottom: 12, letterSpacing: 0.5 }}>WEEKLY AVERAGES</Text>
+              <View style={{ gap: 10 }}>
+                {[
+                  { label: "Blood Pressure", val: (avgSys && avgDia) ? `${avgSys}/${avgDia}` : "--", color: palette.danger },
+                  { label: "Blood Sugar", val: avgSugar ? `${avgSugar} mg/dL` : "--", color: palette.warning },
+                  { label: "Daily Steps", val: avgSteps ? `${avgSteps.toLocaleString()}` : "--", color: palette.brand },
+                  { label: "Sleep Duration", val: avgSleep ? `${avgSleep} hrs` : "--", color: palette.cool },
+                ].map((item, idx) => (
+                  <View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <Text style={{ color: palette.muted, fontSize: 14 }}>{item.label}</Text>
+                    <Text style={{ fontWeight: "800", color: item.color, fontSize: 16 }}>{item.val}</Text>
+                  </View>
+                ))}
+              </View>
+              
+              <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 14 }} />
+              
+              <Text style={{ fontSize: 14, color: palette.ink, lineHeight: 20, fontStyle: "italic" }}>
+                {avgSteps && avgSteps > 8000 
+                  ? "🌟 Excellent physical activity! Your step count is above the healthy threshold." 
+                  : "💡 Try to aim for 8,000+ steps daily to improve your cardiovascular endurance."}
               </Text>
-            ))}
+            </LinearGradient>
           </SectionCard>
 
-          <SectionCard subtitle="Reduce triggers that worsen the current profile" title="Foods To Avoid" testID="dashboard-foods-to-avoid-card">
-            {(recommendation?.foods_to_avoid || fallbackFoodsToAvoid).map((item: string, index: number) => (
-              <Text key={item} style={styles.listItem} testID={`dashboard-food-avoid-item-${index + 1}`}>
-                - {item}
-              </Text>
-            ))}
-          </SectionCard>
+          {prediction && (
+            <AssessmentResultCard 
+              prediction={prediction} 
+              recommendation={recommendation || undefined} 
+              onAction={(target) => navigation.navigate(target as any)} 
+            />
+          )}
         </>
       )}
     </Screen>
@@ -1370,9 +1631,10 @@ function DashboardScreen() {
 
 
 function AssessmentScreen() {
-  const navigation = useNavigation<AuthStackNav>();
+  const navigation = useNavigation<any>();
   const { dashboard, submitAssessment, syncing } = useAppState();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+
   const [profile, setProfile] = useState<AssessmentFormState>({
     name: dashboard?.user.name || "",
     age: String(dashboard?.user.age || ""),
@@ -1523,7 +1785,9 @@ function AssessmentScreen() {
             showAppAlert("Validation Error", "Please enter a realistic blood sugar value (30-500)");
             return;
           }
-          void submitAssessment(profile, selectedSymptoms, () => navigation.navigate("Main"));
+          void submitAssessment(profile, selectedSymptoms, (res) => {
+            navigation.navigate("AssessmentResult", { result: res });
+          });
         }}
         testID="assessment-submit-button"
       />
@@ -1602,65 +1866,72 @@ function ReportsScreen() {
             testID="reports-upload-button" 
           />
         </View>
-        <Text style={[styles.helperText, { marginTop: 12, textAlign: "center" }]} testID="reports-upload-status">{latestReportMessage}</Text>
       </SectionCard>
 
-      <SectionCard subtitle="Latest extracted findings" title="Document Intelligence" testID="reports-document-intelligence-card">
+      <View style={{ gap: 16 }}>
         {dashboard?.reports?.length ? (
-          <>
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={styles.listItem} testID="reports-latest-file">File</Text>
-                <Text style={{ fontWeight: "700" }}>{dashboard.reports[0].file_name}</Text>
+          dashboard.reports.map((report, idx) => (
+            <SectionCard 
+              key={report.id || idx}
+              subtitle={idx === 0 ? "Latest Document Intelligence" : "Past Document Intelligence"} 
+              title={report.report_type?.replace(/_/g, " ")?.toUpperCase() || "REPORT"} 
+              testID={`reports-card-${idx}`}
+            >
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={styles.listItem}>File</Text>
+                  <Text style={{ fontWeight: "700", flex: 1, textAlign: "right" }} numberOfLines={1}>{report.file_name}</Text>
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={styles.listItem}>Classification</Text>
+                  <Text style={{ fontWeight: "700", textTransform: "capitalize" }}>{report.report_type?.replace(/_/g, " ")}</Text>
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={styles.listItem}>Confidence</Text>
+                  <Text style={{ fontWeight: "700", color: palette.brand }}>{Math.round(report.extraction_confidence * 100)}%</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={styles.listItem} testID="reports-latest-type">Classification</Text>
-                <Text style={{ fontWeight: "700", textTransform: "capitalize" }}>{dashboard.reports[0].report_type?.replace(/_/g, " ")}</Text>
-              </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={styles.listItem} testID="reports-latest-confidence">Confidence</Text>
-                <Text style={{ fontWeight: "700", color: palette.brand }}>{Math.round(dashboard.reports[0].extraction_confidence * 100)}%</Text>
-              </View>
-            </View>
-            
-            <View style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.02)", borderRadius: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: "800", color: palette.brand, marginBottom: 12, letterSpacing: 1 }}>EXTRACTED FINDINGS</Text>
-              {(() => {
-                const findings = dashboard.reports[0].extracted_findings as any;
-                const metrics = findings?.metrics || {};
-                const metricEntries = Object.entries(metrics);
-                
-                if (metricEntries.length === 0) {
-                  return <Text style={{ color: palette.muted, fontSize: 13 }}>No key metrics found in this report content.</Text>;
-                }
+              
+              <View style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.02)", borderRadius: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: palette.brand, marginBottom: 12, letterSpacing: 1 }}>EXTRACTED FINDINGS</Text>
+                {(() => {
+                  const fnd = report.extracted_findings as any;
+                  const metrics = fnd?.metrics || {};
+                  const metricEntries = Object.entries(metrics);
+                  
+                  if (metricEntries.length === 0) {
+                    return <Text style={{ color: palette.muted, fontSize: 13 }}>No key metrics found in this report content.</Text>;
+                  }
 
-                return (
-                  <View style={{ gap: 8 }} testID="reports-latest-findings">
-                    {metricEntries.map(([key, val]) => (
-                      <View key={key} style={{ flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.03)", paddingBottom: 4 }}>
-                        <Text style={{ color: palette.muted, fontSize: 13, textTransform: "capitalize" }}>{key.replace(/_/g, " ")}</Text>
-                        <Text style={{ fontWeight: "700", color: palette.ink, fontSize: 13 }}>{String(val)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                );
-              })()}
-              {(dashboard.reports[0].extracted_findings as any)?.note && (
-                <Text style={{ marginTop: 12, fontSize: 11, color: palette.muted, fontStyle: "italic" }}>
-                  Note: {(dashboard.reports[0].extracted_findings as any).note}
-                </Text>
-              )}
-            </View>
-          </>
+                  return (
+                    <View style={{ gap: 8 }} testID={`reports-card-${idx}-findings`}>
+                      {metricEntries.map(([key, val]) => (
+                        <View key={key} style={{ flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.03)", paddingBottom: 4 }}>
+                          <Text style={{ color: palette.muted, fontSize: 13, textTransform: "capitalize" }}>{key.replace(/_/g, " ")}</Text>
+                          <Text style={{ fontWeight: "700", color: palette.ink, fontSize: 13 }}>{String(val)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })()}
+                {(report.extracted_findings as any)?.note && (
+                  <Text style={{ marginTop: 12, fontSize: 11, color: palette.muted, fontStyle: "italic" }}>
+                    Note: {(report.extracted_findings as any).note}
+                  </Text>
+                )}
+              </View>
+            </SectionCard>
+          ))
         ) : (
-          <View style={{ gap: 10 }}>
-            <Text style={styles.listItem} testID="reports-fallback-item-1">✓ Report type classification</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-2">✓ Text extraction and parsing</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-3">✓ Key lab and imaging findings</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-4">✓ Confidence score validation</Text>
-          </View>
+          <SectionCard subtitle="Empty State" title="No Reports Found">
+            <View style={{ gap: 10 }}>
+              <Text style={styles.listItem}>✓ Upload your first medical report</Text>
+              <Text style={styles.listItem}>✓ AI will classify and extract findings</Text>
+              <Text style={styles.listItem}>✓ History will appear here as cards</Text>
+            </View>
+          </SectionCard>
         )}
-      </SectionCard>
+      </View>
     </Screen>
   );
 }
@@ -1738,29 +2009,7 @@ function TrackingScreen() {
     await submitDailyLog(daily, selectedDate);
   };
 
-  const weeklyStats = useMemo(() => {
-    // Get unique logs per day to avoid duplicates showing up in the graph
-    const uniqueLogsMap = new Map();
-    logs.forEach(l => {
-      const date = l.log_date?.slice(0, 10);
-      if (date && !uniqueLogsMap.has(date)) {
-        uniqueLogsMap.set(date, l);
-      }
-    });
-    
-    const uniqueLogs = Array.from(uniqueLogsMap.values())
-      .sort((a, b) => b.log_date.localeCompare(a.log_date))
-      .slice(0, 7)
-      .reverse();
-
-    if (!uniqueLogs.length) return null;
-    return {
-      steps: uniqueLogs.map(l => l.steps || 0),
-      sys: uniqueLogs.map(l => l.systolic_bp || 120),
-      sleep: uniqueLogs.map(l => l.sleep_hours || 0),
-      dates: uniqueLogs.map(l => l.log_date?.split("-")[2] || "?"), 
-    };
-  }, [logs]);
+  const weeklyStats = useMemo(() => getWeeklyStats(logs), [logs]);
 
   return (
     <Screen testID="screen-tracking">
@@ -1930,7 +2179,7 @@ function AssistantScreen() {
         ))}
         {isThinking && (
           <View style={[styles.chatRow, styles.chatRowAssistant]}>
-            <View style={[styles.chatBubble, styles.assistantBubble, { backgroundColor: palette.coolLight }]}>
+            <View style={[styles.chatBubble, styles.assistantBubble, { backgroundColor: "rgba(90, 143, 163, 0.15)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <ActivityIndicator size="small" color={palette.cool} style={{ marginRight: 8 }} />
                 <Text style={[styles.assistantText, { color: palette.cool, fontWeight: "600" }]}>Agent thinking...</Text>
@@ -2271,12 +2520,14 @@ function PrimaryButton({
   onPress,
   compact = false,
   disabled = false,
+  style,
   testID,
 }: {
   label: string;
   onPress: () => void;
   compact?: boolean;
   disabled?: boolean;
+  style?: any;
   testID?: string;
 }) {
   return (
@@ -2287,6 +2538,7 @@ function PrimaryButton({
         styles.button,
         compact && styles.compactButton,
         disabled && { opacity: 0.5 },
+        style,
       ]}
       testID={testID || makeTestId("button", label)}
     >

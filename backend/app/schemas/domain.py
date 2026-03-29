@@ -97,6 +97,12 @@ class AssessmentRead(AssessmentCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AssessmentResponse(BaseModel):
+    assessment: AssessmentRead
+    prediction: RiskPredictionRead
+    recommendation: RecommendationRead | None = None
+
+
 # ─── Risk Prediction ──────────────────────────────────────────────────────────
 
 class RiskPredictionRead(BaseModel):

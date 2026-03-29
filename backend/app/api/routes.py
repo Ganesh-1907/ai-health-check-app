@@ -14,6 +14,7 @@ from app.schemas.domain import (
     AlertRead,
     AssessmentCreate,
     AssessmentRead,
+    AssessmentResponse,
     CareLocation,
     CareSearchRequest,
     ChatMessageRead,
@@ -235,7 +236,7 @@ async def _upsert_prediction_and_recommendation(
     user: User,
     assessment: Assessment,
     reports: list[MedicalReport],
-) -> RiskPrediction:
+) -> tuple[RiskPrediction, RecommendationPlan]:
     risk_result = risk_engine.score(assessment, user=user, reports=reports)
     existing_prediction = await RiskPrediction.find_one(
         RiskPrediction.assessment_id == assessment.id
@@ -269,11 +270,12 @@ async def _upsert_prediction_and_recommendation(
         RecommendationPlan.assessment_id == assessment.id,
     )
     if existing_recommendation is None:
-        await RecommendationPlan(
+        recommendation = RecommendationPlan(
             user_id=user.id,
             assessment_id=assessment.id,
             **recommendation_payload,
-        ).insert()
+        )
+        await recommendation.insert()
     else:
         existing_recommendation.diet_plan = recommendation_payload["diet_plan"]
         existing_recommendation.foods_to_avoid = recommendation_payload["foods_to_avoid"]
@@ -282,20 +284,26 @@ async def _upsert_prediction_and_recommendation(
         existing_recommendation.hydration_goal_liters = recommendation_payload["hydration_goal_liters"]
         existing_recommendation.updated_at = utcnow()
         await existing_recommendation.save()
-    return prediction
+        recommendation = existing_recommendation
+    return prediction, recommendation
 
 
-async def _persist_assessment_bundle(user: User, payload: AssessmentCreate) -> Assessment:
+async def _persist_assessment_bundle(user: User, payload: AssessmentCreate) -> AssessmentResponse:
     data = payload.model_dump()
     data["bmi"] = calculate_bmi(data.get("height_cm"), data.get("weight_kg"))
     assessment = Assessment(user_id=user.id, **data)
     await assessment.insert()
     reports = await _recent_reports(str(user.id))
-    await _upsert_prediction_and_recommendation(user, assessment, reports)
-    prediction = await _latest_prediction_for_user(str(user.id))
+    prediction, recommendation = await _upsert_prediction_and_recommendation(user, assessment, reports)
+    
     for alert_data in alert_engine.from_assessment(assessment):
         await Alert(user_id=user.id, **alert_data).insert()
-    return assessment
+        
+    return {
+        "assessment": _assessment_to_read(assessment),
+        "prediction": _prediction_to_read(prediction),
+        "recommendation": _recommendation_to_read(recommendation) if recommendation else None
+    }
 
 
 def _first_number(value: object) -> float | None:
@@ -401,15 +409,14 @@ async def update_user(
 
 # ─── Assessments ──────────────────────────────────────────────────────────────
 
-@router.post("/users/{user_id}/assessments", response_model=AssessmentRead)
+@router.post("/users/{user_id}/v2-assessments", response_model=AssessmentResponse)
 async def create_assessment(
     user_id: str,
     payload: AssessmentCreate,
     current_user: User = Depends(get_current_user),
-) -> AssessmentRead:
+) -> AssessmentResponse:
     user = await _get_user_or_404(user_id)
-    assessment = await _persist_assessment_bundle(user, payload)
-    return _assessment_to_read(assessment)
+    return await _persist_assessment_bundle(user, payload)
 
 
 @router.get("/users/{user_id}/assessments/latest", response_model=AssessmentRead | None)

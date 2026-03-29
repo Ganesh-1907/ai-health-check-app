@@ -70,9 +70,9 @@ class RiskEngine:
         if report_signals.explanation:
             confidence = min(0.92, confidence + 0.03)
 
-        if final_score >= 70 or red_flags:
+        if final_score > 80 or len(red_flags) >= 2:
             risk_level = "High"
-        elif final_score >= 40:
+        elif (65 <= final_score <= 80) or len(red_flags) == 1:
             risk_level = "Medium"
         else:
             risk_level = "Low"
@@ -159,20 +159,35 @@ class RiskEngine:
             explanation.append("Elevated heart rate may indicate increased cardiac stress.")
 
         if "chest pain" in symptoms:
-            score += 14
-            explanation.append("Chest pain is a major symptom requiring attention.")
+            score += 35
+            red_flags.append("Reported chest pain.")
+            explanation.append("Chest pain is a primary indicator of cardiovascular distress.")
         if "shortness of breath" in symptoms:
+            score += 30
+            red_flags.append("Reported shortness of breath.")
+            explanation.append("Shortness of breath (dyspnea) significantly increases risk concerns.")
+        if "palpitations" in symptoms:
             score += 12
-            explanation.append("Shortness of breath is a significant cardiovascular symptom.")
-        if "dizziness" in symptoms:
-            score += 6
-            explanation.append("Dizziness increases concern in the current context.")
+            explanation.append("Heart palpitations can indicate rhythmic or structural concerns.")
+        if "nausea" in symptoms or "vomiting" in symptoms:
+            score += 10
+            explanation.append("Gastrointestinal distress like nausea can be an atypical sign of cardiac events.")
+        if "dizziness" in symptoms or "lightheadedness" in symptoms:
+            score += 8
+            explanation.append("Dizziness/lightheadedness increases concern in the current context.")
         if "fatigue" in symptoms:
-            score += 4
+            score += 5
             explanation.append("Fatigue can contribute to the overall risk picture.")
+        if any(s in symptoms for s in ["jaw pain", "neck pain", "back pain", "shoulder pain"]):
+            score += 15
+            explanation.append("Pain radiating to jaw, neck, back, or shoulders is a known cardiac warning sign.")
+        
         if "sweating" in symptoms and "chest pain" in symptoms:
-            score += 12
+            score += 15
             red_flags.append("Chest pain with sweating can indicate emergency risk.")
+        if "chest pain" in symptoms and "shortness of breath" in symptoms:
+            score += 15
+            red_flags.append("Combination of chest pain and shortness of breath.")
 
         if history.get("previous_heart_problems"):
             score += 14

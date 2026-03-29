@@ -23,26 +23,55 @@ class RecommendationEngine:
         effective_triglycerides = self._first_number(report_metrics.get("triglycerides")) or 0
 
         active_tags: set[str] = {"heart"}
-        diet_plan: list[str] = [
-            "Breakfast: oats or another whole grain with fruit and unsalted nuts or seeds.",
-            "Lunch: dal, beans, or lean protein with vegetables and a whole grain such as brown rice or roti in controlled portions.",
-            "Dinner: grilled fish, tofu, or pulses with cooked vegetables and a lighter carbohydrate portion.",
-            "Snacks: fruit, curd, sprouts, or a small handful of unsalted nuts instead of packaged snacks.",
-        ]
-        foods_to_avoid: list[str] = [
-            "Deep-fried foods",
-            "Processed snacks with excess salt",
-            "Sugary drinks",
-        ]
+        risk_norm = str(prediction.risk_level).strip().lower()
+
+        # baseline content
+        diet_plan = ["Focus on whole, unprocessed foods like vegetables, legumes, and lean proteins."]
+        foods_to_avoid = ["Excessive salt", "Trans-fats", "Added sugars"]
+        daily_tips = ["Log your vitals regularly to track your progress."]
+
+        if risk_norm == "high":
+            diet_plan.extend([
+                "Strictly low-sodium, heart-healthy liquids or very soft foods until doctor review.",
+                "Avoid all processed, oily, or spicy foods immediately.",
+                "Small, frequent meals are better than large ones if feeling any discomfort.",
+            ])
+            foods_to_avoid.extend(["All fried foods", "Caffeine", "Energy drinks", "High-fat dairy"])
+            daily_tips.extend([
+                "URGENT: Arrange for a medical consultation or hospital visit immediately.",
+                "Keep your emergency contact and nearest hospital details ready.",
+                "Minimize all physical exertion until cleared by a professional.",
+            ])
+        elif risk_norm == "medium":
+            diet_plan.extend([
+                "Adopt a 'DASH' or 'Mediterranean' style eating pattern with high fiber.",
+                "Breakfast: Oats or whole grains with fresh fruit.",
+                "Lunch: Balanced portions of dal/beans, brown rice/roti, and plenty of vegetables.",
+                "Dinner: Light protein like grilled fish or tofu with steamed greens.",
+            ])
+            foods_to_avoid.extend(["Deep-fried snacks", "Sugary beverages", "Excessive red meat"])
+            daily_tips.extend([
+                "Review your health trends daily and note any worsening symptoms.",
+                "Consult the AI Assistant for detailed clarification on your metrics.",
+                "Maintain consistent hydration and moderate, safe activity levels.",
+            ])
+        else: # Low Risk or default
+            diet_plan.extend([
+                "Maintain a balanced, preventative heart-healthy diet.",
+                "Ensure varied intake of fruits, vegetables, and lean proteins.",
+                "Choose whole grains over refined ones for sustained energy.",
+                "Include healthy fats like nuts and olive oil in moderation.",
+            ])
+            foods_to_avoid.extend(["Excessive refined sugar", "High-sodium packaged foods"])
+            daily_tips.extend([
+                "Continue your regular physical activity as part of a healthy lifestyle.",
+                "Stay hydrated and manage stress through consistent routines.",
+            ])
+
         medicine_guidance = [
             "If you already take prescribed medicines, continue them exactly as your doctor advised.",
             "Do not start, stop, or change prescription heart or diabetes medicines without consulting a doctor.",
             "Any chest pain, fainting, severe breathlessness, or rapidly worsening values should trigger urgent medical review.",
-        ]
-        daily_tips = [
-            "Check and log blood pressure at the same time each day.",
-            "Keep water intake regular through the day.",
-            "Aim for a short daily walk unless a doctor has restricted exertion.",
         ]
         hydration_goal = round(min(3.0, max(1.8, ((assessment.weight_kg or 70) * 0.03))), 1)
 
