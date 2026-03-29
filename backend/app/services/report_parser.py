@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import re
 from pathlib import Path
 
@@ -10,16 +11,20 @@ from pypdf import PdfReader
 from rapidocr_onnxruntime import RapidOCR
 
 from app.core.config import get_settings
+from app.services.gemini import GeminiService
+
+logger = logging.getLogger(__name__)
 
 
 class ReportParser:
-    vision_timeout_seconds = 4.0
+    vision_timeout_seconds = 15.0  # Increased for Gemini
 
     def __init__(self) -> None:
         self.settings = get_settings()
         self.ocr_engine = RapidOCR()
+        self.gemini = GeminiService()
 
-    def parse(self, file_path: Path, report_type: str, content_type: str) -> tuple[str, dict, float]:
+    async def parse(self, file_path: Path, report_type: str, content_type: str) -> tuple[str, dict, float]:
         text = ""
         findings: dict[str, str | list[str] | dict[str, str]] = {"report_type": report_type}
         confidence = 0.15
@@ -32,13 +37,17 @@ class ReportParser:
                 if not text:
                     findings["note"] = "PDF text could not be extracted reliably, but the file was stored."
             elif suffix in {".png", ".jpg", ".jpeg", ".webp"}:
-                text = self._extract_image_text_with_ocr(file_path)
-                confidence = 0.62 if text else 0.14
+                # Try Gemini Vision first as it's more accurate for medical reports
+                text = await self._extract_image_text_with_gemini(file_path)
+                confidence = 0.82 if text else 0.14
+                
                 if not text:
-                    text = self._extract_image_text_with_vision(file_path)
-                    confidence = 0.46 if text else 0.14
+                    # Fallback to local OCR if Gemini fails
+                    text = self._extract_image_text_with_ocr(file_path)
+                    confidence = 0.52 if text else 0.14
+                
                 if not text:
-                    findings["note"] = "Image text could not be extracted reliably, but the file was stored."
+                    findings["note"] = "Medical image could not be parsed reliably, but the file was stored."
             elif suffix in {".txt", ".csv", ".tsv", ".log"} or content_type.startswith("text/"):
                 text = self._extract_plain_text(file_path)
                 confidence = 0.68 if text else 0.18
@@ -76,43 +85,24 @@ class ReportParser:
     def _extract_plain_text(file_path: Path) -> str:
         return file_path.read_text(encoding="utf-8", errors="ignore").strip()
 
-    def _extract_image_text_with_vision(self, file_path: Path) -> str:
+    async def _extract_image_text_with_gemini(self, file_path: Path) -> str:
         try:
-            with Image.open(file_path) as image:
-                image.thumbnail((1800, 1800))
-                temp_path = file_path.with_suffix(".vision.jpg")
-                image.convert("RGB").save(temp_path, format="JPEG", quality=85)
-            encoded = base64.b64encode(temp_path.read_bytes()).decode("utf-8")
-            temp_path.unlink(missing_ok=True)
-        except Exception:
+            image_bytes = file_path.read_bytes()
+            prompt = (
+                "Extract all medical data from this heart report. Look for values like "
+                "BP (Blood Pressure), LDL, HDL, Triglycerides, Total Cholesterol, "
+                "Ejection Fraction (EF%), Blockage/Stenosis Percentage, TMT results, "
+                "Heart Rate, and Glucose levels. Return the raw text found plus a summary of these metrics."
+            )
+            return await self.gemini.generate_content(prompt, image_data=image_bytes)
+        except Exception as e:
+            logger.error(f"Gemini extraction failed: {e}")
             return ""
 
-        prompt = (
-            "Read this medical report image carefully. Extract the visible text as faithfully as possible. "
-            "If values such as LDL, HDL, triglycerides, ejection fraction, blockage percentage, BP, heart rate, glucose, "
-            "cholesterol, TMT result, ischemia, or angiogram findings are visible, include them clearly. Return plain text only."
-        )
-        try:
-            response = requests.post(
-                f"{self.settings.ollama_base_url}/api/chat",
-                json={
-                    "model": self.settings.ollama_vision_model,
-                    "stream": False,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt,
-                            "images": [encoded],
-                        }
-                    ],
-                },
-                timeout=(1.5, self.vision_timeout_seconds),
-            )
-            response.raise_for_status()
-            payload = response.json()
-            return payload.get("message", {}).get("content", "").strip()
-        except Exception:
-            return ""
+    def _extract_image_text_with_vision(self, file_path: Path) -> str:
+        # This was the old Ollama method, keeping it as a ghost/legacy reference if needed, 
+        # but the system now prefers Gemini via _extract_image_text_with_gemini.
+        return ""
 
     def _extract_image_text_with_ocr(self, file_path: Path) -> str:
         try:

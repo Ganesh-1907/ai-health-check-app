@@ -7,11 +7,13 @@
 
 ```powershell
 cd backend
+cp .env.example .env  # set GEMINI_API_KEYS and other values
 pip install -r requirements.txt
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 3. Keep that terminal running.
+4. Chat transcripts are not stored unless you set `CHAT_STORE_MESSAGES=true` in `backend/.env`.
 
 ## Frontend
 

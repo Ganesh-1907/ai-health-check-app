@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "changeme_use_a_long_random_string_in_production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
+    gemini_api_keys: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+    chat_store_messages: bool = False
 
     @property
     def allowed_origins_list(self) -> list[str]:
@@ -29,6 +32,10 @@ class Settings(BaseSettings):
     @property
     def storage_path(self) -> Path:
         return Path(self.storage_dir).resolve()
+
+    @property
+    def gemini_keys(self) -> list[str]:
+        return [k.strip() for k in self.gemini_api_keys.split(",") if k.strip()]
 
     @property
     def risk_model_artifact(self) -> Path:

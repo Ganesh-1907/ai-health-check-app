@@ -513,7 +513,7 @@ async def upload_report(
     contents = await file.read()
     file_path.write_bytes(contents)
 
-    extracted_text, findings, confidence = report_parser.parse(file_path, report_type, file.content_type or "")
+    extracted_text, findings, confidence = await report_parser.parse(file_path, report_type, file.content_type or "")
     report = MedicalReport(
         user_id=user.id,
         report_type=report_type,
@@ -594,8 +594,8 @@ async def chat(
     ).sort(-DailyLog.log_date).limit(5).to_list()
     history_docs = await ChatMessage.find(
         ChatMessage.user_id == _oid(payload.user_id)
-    ).sort(-ChatMessage.created_at).limit(6).to_list()
-    history = list(reversed(history_docs))
+    ).sort(-ChatMessage.created_at).limit(6).to_list() if settings.chat_store_messages else []
+    history = list(reversed(history_docs)) if settings.chat_store_messages else []
 
     reply = await chatbot_service.reply(
         user=user,
@@ -608,8 +608,9 @@ async def chat(
         history=history,
     )
 
-    await ChatMessage(user_id=user.id, role="user", content=payload.message, metadata_json={}).insert()
-    await ChatMessage(user_id=user.id, role="assistant", content=reply, metadata_json={}).insert()
+    if settings.chat_store_messages:
+        await ChatMessage(user_id=user.id, role="user", content=payload.message, metadata_json={}).insert()
+        await ChatMessage(user_id=user.id, role="assistant", content=reply, metadata_json={}).insert()
 
     return ChatResponse(
         reply=reply,

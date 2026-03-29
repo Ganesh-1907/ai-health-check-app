@@ -1,11 +1,13 @@
-from __future__ import annotations
-
-import httpx
+import logging
+from typing import Any
 
 from app.core.config import get_settings
 from app.models.entities import Assessment, ChatMessage, DailyLog, MedicalReport, RecommendationPlan, RiskPrediction, User
 from app.services.clinical_reasoner import HeartClinicalReasoner, HeartTriageSummary
 from app.services.heart_knowledge import get_heart_knowledge_base
+from app.services.gemini import GeminiService
+
+logger = logging.getLogger(__name__)
 
 
 class ChatbotService:
@@ -15,6 +17,7 @@ class ChatbotService:
         self.settings = get_settings()
         self.reasoner = HeartClinicalReasoner()
         self.knowledge_base = get_heart_knowledge_base()
+        self.gemini = GeminiService()
 
     async def reply(
         self,
@@ -45,51 +48,19 @@ class ChatbotService:
             history=history or [],
             triage=triage,
         )
-        # Use first configured model, then a fallback local model name
-        model_candidates = list(dict.fromkeys([self.settings.ollama_model, "llama3.2:latest", "llama3.1:8b"]))
-        for model_name in model_candidates:
-            try:
-                async with httpx.AsyncClient(
-                    timeout=httpx.Timeout(
-                        self.model_timeout_seconds,
-                        connect=2.0,
-                        read=self.model_timeout_seconds,
-                        write=self.model_timeout_seconds,
-                        pool=self.model_timeout_seconds,
-                    )
-                ) as client:
-                    response = await client.post(
-                        f"{self.settings.ollama_base_url}/api/chat",
-                        json={
-                            "model": model_name,
-                            "stream": False,
-                            "options": {
-                                "temperature": 0.4, # Slightly higher for more variety
-                                "num_predict": 300,
-                            },
-                            "messages": [
-                                {
-                                    "role": "system",
-                                    "content": (
-                                        "You are an expert heart-health virtual assistant for the HeartGuard AI app. "
-                                        "Ground your answer in the provided user health snapshots. "
-                                        "Provide a conversational, practical, and safe response. "
-                                        "Do not repeat the provided data back to the user; instead, interpret what it means for their heart health. "
-                                        "If danger signals appear (chest pain, severe breathlessness, fainting), emphasize urgent care. "
-                                        "Keep your answer under 250 tokens and focus on the user's specific health profile."
-                                    ),
-                                },
-                                {"role": "user", "content": prompt},
-                            ],
-                        },
-                    )
-                    response.raise_for_status()
-                    payload = response.json()
-                    reply = payload.get("message", {}).get("content", "").strip()
-                    if self._reply_is_usable(reply):
-                        return reply
-            except Exception:
-                continue
+        
+        # Build message history for Gemini
+        gemini_history = []
+        if history:
+            for m in history:
+                gemini_history.append({"role": m.role, "content": m.content})
+
+        try:
+            reply = await self.gemini.chat(gemini_history, prompt)
+            if self._reply_is_usable(reply):
+                return reply
+        except Exception as e:
+            logger.error(f"Gemini chat failed: {e}")
 
         return self._fallback_reply(prediction, recommendation, assessment, triage)
 
@@ -105,6 +76,14 @@ class ChatbotService:
         history: list[ChatMessage],
         triage: HeartTriageSummary,
     ) -> str:
+        system_rules = (
+            "You are HeartGuard, a cautious cardiovascular-health assistant. "
+            "Stay within heart and circulation topics, provide evidence-based education only, "
+            "and avoid firm diagnoses or medication dosing. "
+            "Respond in plain language with 2–3 concise sentences (max ~120 words) and no headings, lists, or numbering. "
+            "If the question is unrelated to heart health, politely steer back to cardiovascular guidance. "
+            "Always remind users to seek emergency care for severe chest pain, shortness of breath, fainting, or stroke signs."
+        )
         retrieval_query = " ".join(
             [
                 message,
@@ -120,6 +99,7 @@ class ChatbotService:
         latest_log = recent_logs[0] if recent_logs else None
         history_block = "\n".join([f"{item.role}: {item.content}" for item in history[-2:]])
         return (
+            f"System rules: {system_rules}\n"
             f"User Question: {message}\n"
             f"Current Stats: {user.age} year old {user.gender}. Risk: {prediction.risk_level if prediction else 'unk'} at {prediction.risk_score if prediction else 'n/a'}%.\n"
             f"Symptoms: {assessment.symptoms if assessment else []}. Red flags: {triage.red_flags}.\n"
@@ -127,11 +107,9 @@ class ChatbotService:
             f"Report findings: {report_metrics or {}}.\n"
             f"Clinical Context: {evidence_block}.\n"
             f"Recent Context: {history_block or 'Initial message'}.\n"
-            "Respond conversationally to the user's question. Structure your response with:\n"
-            "1. A direct, clear answer.\n"
-            "2. 'Why it matters' (context from their risk/symptoms).\n"
-            "3. 'Next steps' (practical advice).\n"
-            "4. 'Safety Note' (if urgent factors exist)."
+            "Respond conversationally to the user's question in 2–3 sentences, plain language, no headings, no lists, no numbering. "
+            "Keep it under 120 words and avoid asking for extra personal identifiers. "
+            "Always include a short safety reminder if any red flags or emergency signs are present."
         )
 
     @staticmethod

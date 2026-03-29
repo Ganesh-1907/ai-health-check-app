@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, useFocusEffect, useNavigation } from "@react-navigation/native";
 import { createBottomTabNavigator, BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator, NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -28,7 +28,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Location from "expo-location";
 
-import { dashboardSnapshot, initialChat } from "./src/data/mock";
+import { dashboardSnapshot } from "./src/data/mock";
 import { palette } from "./src/theme";
 import { storage } from "./src/utils/storage";
 
@@ -36,7 +36,7 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const queryClient = new QueryClient();
 const backendHealthTimeoutMs = 5000;
-const requestTimeoutMs = 12000;
+const requestTimeoutMs = 30000;
 const uploadRequestTimeoutMs = 20000;
 const tokenKey = "heartguard-auth-token";
 const userIdKey = "heartguard-user-id";
@@ -65,6 +65,16 @@ const fallbackFoodsToAvoid = ["Deep-fried foods", "Sugary drinks", "Processed hi
 const fallbackMedicineGuidance = [
   "Continue prescribed medicines exactly as your doctor advised.",
   "Do not start or stop prescription medicines without consulting a doctor.",
+];
+const sampleQuestions = [
+  "What are early warning signs of a heart attack?",
+  "Is chest pain while climbing stairs serious?",
+  "How often should I check my blood pressure?",
+  "What foods help lower LDL cholesterol?",
+  "How much walking is good for heart health?",
+  "Can you explain my last medical report?",
+  "What should I do if my blood sugar is high?",
+  "Why is my heart risk score increasing?",
 ];
 
 function extractHostFromUri(value?: string | null): string | null {
@@ -244,7 +254,8 @@ type AppState = {
   submitAssessment: (payload: AssessmentFormState, selectedSymptoms: string[], onSuccess?: () => void) => Promise<void>;
   submitDailyLog: (payload: DailyLogFormState, logDate: string) => Promise<void>;
   sendChat: (message: string) => Promise<void>;
-  uploadReport: (reportType: string) => Promise<void>;
+  resetChat: () => void;
+  uploadReport: (fileAsset?: any) => Promise<void>;
   searchCare: (latitude: number, longitude: number) => Promise<void>;
   loginUser: (email: string, password: string) => Promise<void>;
   signupUser: (data: SignupData) => Promise<void>;
@@ -581,30 +592,11 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [careResults, setCareResults] = useState<CareLocation[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>(initialChat);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [backendIssue, setBackendIssue] = useState<string | null>(null);
   const [latestReportMessage, setLatestReportMessage] = useState("No report uploaded yet.");
-
-  const loadChatHistory = async (nextUserId: string) => {
-    try {
-      const history = await fetchJson<Array<{ id: string; role: "assistant" | "user"; content: string }>>(
-        `/users/${nextUserId}/chat-history`,
-      );
-      if (history.length) {
-        setMessages(
-          history.map((item) => ({
-            id: `${item.id}`,
-            role: item.role,
-            text: item.content,
-          })),
-        );
-      }
-    } catch {
-      setMessages(initialChat);
-    }
-  };
 
   const loginUser = async (email: string, password: string): Promise<void> => {
     const payload = await fetchJson<{ access_token: string; user_id: string; name: string }>("/auth/login", {
@@ -619,7 +611,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     setDashboard(dashboard);
     setBackendIssue(null);
     showCriticalAlerts(dashboard);
-    await loadChatHistory(payload.user_id);
+    setMessages([]); // fresh chat each login
   };
 
   const signupUser = async (data: SignupData): Promise<void> => {
@@ -649,8 +641,12 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     setUserId(null);
     setIsAuthenticated(false);
     setDashboard(null);
-    setMessages(initialChat);
+    setMessages([]);
   };
+
+  const resetChat = useCallback(() => {
+    setMessages([]);
+  }, []);
 
   const refreshDashboard = async () => {
     if (!userId) return;
@@ -673,7 +669,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
             const nextDashboard = await fetchJson<DashboardPayload>(`/users/${storedUserId}/dashboard`);
             setDashboard(nextDashboard);
             showCriticalAlerts(nextDashboard);
-            await loadChatHistory(storedUserId);
+            setMessages([]); // no history loaded
           } catch {
             // Token may be expired — force re-login
             await storage.remove(tokenKey);
@@ -817,31 +813,36 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const uploadReport = async (reportType: string) => {
+  const uploadReport = async (fileAsset?: any) => {
     if (!userId) return;
     setSyncing(true);
     try {
       const activeUserId = userId;
       const form = new FormData();
-      form.append("report_type", reportType || "general_report");
-      if (isE2EMode) {
-        form.append("file", (await createE2EUploadFileAsset()) as never);
-      } else {
-        const result = await DocumentPicker.getDocumentAsync({ multiple: false, copyToCacheDirectory: true });
-        if (result.canceled || !result.assets[0]) return;
+      form.append("report_type", "general_report");
 
-        const asset = result.assets[0];
-        if (Platform.OS === "web") {
-          const blob = await (await fetch(asset.uri)).blob();
-          form.append("file", blob, asset.name);
+      let selectedAsset = fileAsset;
+      if (!selectedAsset) {
+        if (isE2EMode) {
+          selectedAsset = await createE2EUploadFileAsset();
         } else {
-          form.append("file", { 
-            uri: asset.uri, 
-            name: asset.name, 
-            type: asset.mimeType || "application/octet-stream" 
-          } as never);
+          const result = await DocumentPicker.getDocumentAsync({ multiple: false, copyToCacheDirectory: true });
+          if (result.canceled || !result.assets[0]) return;
+          selectedAsset = result.assets[0];
         }
       }
+
+      if (Platform.OS === "web") {
+        const blob = await (await fetch(selectedAsset.uri)).blob();
+        form.append("file", blob, selectedAsset.name);
+      } else {
+        form.append("file", { 
+          uri: selectedAsset.uri, 
+          name: selectedAsset.name, 
+          type: selectedAsset.type || selectedAsset.mimeType || "application/octet-stream" 
+        } as never);
+      }
+
       const authHeaders = await getAuthHeaders();
       const response = await fetchWithTimeout(
         `${apiBaseUrl}/users/${activeUserId}/reports/upload`,
@@ -896,8 +897,9 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       loginUser,
       signupUser,
       logoutUser,
+      resetChat,
     }),
-    [userId, isAuthenticated, dashboard, careResults, messages, loading, syncing, backendIssue, latestReportMessage],
+    [userId, isAuthenticated, dashboard, careResults, messages, loading, syncing, backendIssue, latestReportMessage, resetChat],
   );
 
   return <AppStateContext.Provider value={contextValue}>{children}</AppStateContext.Provider>;
@@ -1531,37 +1533,132 @@ function AssessmentScreen() {
 
 function ReportsScreen() {
   const { dashboard, latestReportMessage, uploadReport, syncing } = useAppState();
-  const [reportType, setReportType] = useState("lipid_profile");
+  const [selectedFile, setSelectedFile] = useState<any>(null);
+
+  const handlePickFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ multiple: false, copyToCacheDirectory: true });
+    if (!result.canceled && result.assets[0]) {
+      setSelectedFile(result.assets[0]);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) return;
+    await uploadReport(selectedFile);
+    setSelectedFile(null);
+  };
+
+  const reportDescriptions = [
+    {
+      title: "TMT Report (Treadmill Test)",
+      desc: "A stress test that monitors your heart's performance during physical activity. It helps detect ischemia (reduced blood flow to the heart muscle).",
+    },
+    {
+      title: "2D Echo (Echocardiogram)",
+      desc: "An ultrasound of your heart. It measures the Ejection Fraction (EF) (how well your heart pumps blood), checks valve health, and looks for wall motion issues.",
+    },
+    {
+      title: "Angiogram",
+      desc: "A specialized X-ray used to see the heart's blood vessels. It identifies the exact location and percentage of blockages (stenosis) in your coronary arteries.",
+    },
+    {
+      title: "Lipid Profile",
+      desc: "A blood test that measures your cholesterol levels, including LDL (\"bad\" cholesterol), HDL (\"good\" cholesterol), and Triglycerides.",
+    },
+  ];
 
   return (
     <Screen testID="screen-reports">
-      <Header eyebrow="PDF or image intake" title="Medical Reports" testID="reports-header" />
-      <SectionCard subtitle="Supported uploads" title="Upload Center" testID="reports-upload-center-card">
-        {["TMT report", "2D Echo", "Angiogram", "Lipid profile blood test"].map((item: string, index: number) => (
-          <Text key={item} style={styles.listItem} testID={`reports-supported-upload-${index + 1}`}>
-            - {item}
-          </Text>
+      <Header eyebrow="AI-powered medical documentation" title="Health Reports" testID="reports-header" />
+      
+      <SectionCard subtitle="Knowledge base for uploaded reports" title="Report Definitions" testID="reports-definitions-card">
+        {reportDescriptions.map((item, idx) => (
+          <View key={idx} style={{ marginBottom: 12 }}>
+            <Text style={{ fontWeight: "800", color: palette.brand, fontSize: 14, marginBottom: 2 }}>{item.title}</Text>
+            <Text style={{ color: palette.ink, fontSize: 13, lineHeight: 18, opacity: 0.8 }}>{item.desc}</Text>
+          </View>
         ))}
-        <Field label="Report type" value={reportType} onChangeText={setReportType} testID="field-reports-report-type" />
-        <PrimaryButton label={syncing ? "Uploading..." : "Choose And Upload File"} onPress={() => void uploadReport(reportType)} testID="reports-upload-button" />
-        <Text style={styles.helperText} testID="reports-upload-status">{latestReportMessage}</Text>
+      </SectionCard>
+
+      <SectionCard subtitle="Select and submit for analysis" title="Upload Center" testID="reports-upload-center-card">
+        <View style={{ gap: 12 }}>
+          <PrimaryButton 
+            label={selectedFile ? "Change Selected File" : "Select Report File (PDF/Image)"} 
+            onPress={handlePickFile} 
+            testID="reports-select-file-button" 
+          />
+          
+          {selectedFile && (
+            <View style={{ backgroundColor: "rgba(0,0,0,0.03)", padding: 12, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: palette.brand }}>
+              <Text style={{ fontSize: 12, color: palette.ink, opacity: 0.6, textTransform: "uppercase", marginBottom: 2 }}>Selected File</Text>
+              <Text style={{ fontWeight: "700", color: palette.brand }} numberOfLines={1}>{selectedFile.name}</Text>
+            </View>
+          )}
+
+          <PrimaryButton 
+            label={syncing ? "Analyzing..." : "Submit and Analyze"} 
+            onPress={handleSubmit} 
+            disabled={!selectedFile || syncing}
+            testID="reports-upload-button" 
+          />
+        </View>
+        <Text style={[styles.helperText, { marginTop: 12, textAlign: "center" }]} testID="reports-upload-status">{latestReportMessage}</Text>
       </SectionCard>
 
       <SectionCard subtitle="Latest extracted findings" title="Document Intelligence" testID="reports-document-intelligence-card">
         {dashboard?.reports?.length ? (
           <>
-            <Text style={styles.listItem} testID="reports-latest-file">- File: {dashboard.reports[0].file_name}</Text>
-            <Text style={styles.listItem} testID="reports-latest-type">- Type: {dashboard.reports[0].report_type}</Text>
-            <Text style={styles.listItem} testID="reports-latest-confidence">- Confidence: {Math.round(dashboard.reports[0].extraction_confidence * 100)}%</Text>
-            <Text style={styles.helperText} testID="reports-latest-findings">{JSON.stringify(dashboard.reports[0].extracted_findings)}</Text>
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={styles.listItem} testID="reports-latest-file">File</Text>
+                <Text style={{ fontWeight: "700" }}>{dashboard.reports[0].file_name}</Text>
+              </View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={styles.listItem} testID="reports-latest-type">Classification</Text>
+                <Text style={{ fontWeight: "700", textTransform: "capitalize" }}>{dashboard.reports[0].report_type?.replace(/_/g, " ")}</Text>
+              </View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={styles.listItem} testID="reports-latest-confidence">Confidence</Text>
+                <Text style={{ fontWeight: "700", color: palette.brand }}>{Math.round(dashboard.reports[0].extraction_confidence * 100)}%</Text>
+              </View>
+            </View>
+            
+            <View style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.02)", borderRadius: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: "800", color: palette.brand, marginBottom: 12, letterSpacing: 1 }}>EXTRACTED FINDINGS</Text>
+              {(() => {
+                const findings = dashboard.reports[0].extracted_findings as any;
+                const metrics = findings?.metrics || {};
+                const metricEntries = Object.entries(metrics);
+                
+                if (metricEntries.length === 0) {
+                  return <Text style={{ color: palette.muted, fontSize: 13 }}>No key metrics found in this report content.</Text>;
+                }
+
+                return (
+                  <View style={{ gap: 8 }} testID="reports-latest-findings">
+                    {metricEntries.map(([key, val]) => (
+                      <View key={key} style={{ flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.03)", paddingBottom: 4 }}>
+                        <Text style={{ color: palette.muted, fontSize: 13, textTransform: "capitalize" }}>{key.replace(/_/g, " ")}</Text>
+                        <Text style={{ fontWeight: "700", color: palette.ink, fontSize: 13 }}>{String(val)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
+              {(dashboard.reports[0].extracted_findings as any)?.note && (
+                <Text style={{ marginTop: 12, fontSize: 11, color: palette.muted, fontStyle: "italic" }}>
+                  Note: {(dashboard.reports[0].extracted_findings as any).note}
+                </Text>
+              )}
+            </View>
           </>
         ) : (
-          <>
-            <Text style={styles.listItem} testID="reports-fallback-item-1">- Report type classification</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-2">- Text extraction and parsing</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-3">- Key lab and imaging findings</Text>
-            <Text style={styles.listItem} testID="reports-fallback-item-4">- Confidence score before feeding the risk engine</Text>
-          </>
+          <View style={{ gap: 10 }}>
+            <Text style={styles.listItem} testID="reports-fallback-item-1">✓ Report type classification</Text>
+            <Text style={styles.listItem} testID="reports-fallback-item-2">✓ Text extraction and parsing</Text>
+            <Text style={styles.listItem} testID="reports-fallback-item-3">✓ Key lab and imaging findings</Text>
+            <Text style={styles.listItem} testID="reports-fallback-item-4">✓ Confidence score validation</Text>
+          </View>
         )}
       </SectionCard>
     </Screen>
@@ -1774,30 +1871,73 @@ function TrackingScreen() {
 }
 
 function AssistantScreen() {
-  const { messages, sendChat } = useAppState();
+  const { messages, sendChat, resetChat } = useAppState();
   const [draft, setDraft] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      resetChat();
+      setDraft("");
+    }, [resetChat]),
+  );
 
   const submit = async () => {
     if (!draft.trim()) return;
     const next = draft;
     setDraft("");
+    setIsThinking(true);
     await sendChat(next);
+    setIsThinking(false);
+  };
+
+  const sendQuick = async (question: string) => {
+    setDraft("");
+    setIsThinking(true);
+    await sendChat(question);
+    setIsThinking(false);
   };
 
   return (
     <Screen testID="screen-assistant">
       <Header eyebrow="Real assistant surface" title="AI Chatbot" testID="assistant-header" />
       <SectionCard subtitle="Questions about risk, reports, diet, medicines, and tracking" title="Conversation" testID="assistant-conversation-card">
+        <View style={styles.quickRow}>
+          <Text style={[styles.helperText, { flex: 1 }]}>Need ideas? Tap a question or ask your own.</Text>
+          <View style={styles.quickChipsWrap}>
+            {sampleQuestions.map((q) => (
+              <Pressable key={q} onPress={() => void sendQuick(q)} style={styles.quickChip} testID={`assistant-quick-${q}`}>
+                <Text style={styles.quickChipText}>{q}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
         {messages.map((message: any, index: number) => (
-          <View key={message.id} style={[styles.chatBubble, message.role === "assistant" ? styles.assistantBubble : styles.userBubble]} testID={`assistant-message-${index + 1}-${message.role}`}>
-            <Text
-              style={message.role === "assistant" ? styles.assistantText : styles.userText}
-              testID={`assistant-message-text-${index + 1}-${message.role}`}
-            >
-              {message.text}
-            </Text>
+          <View
+            key={message.id}
+            style={[styles.chatRow, message.role === "assistant" ? styles.chatRowAssistant : styles.chatRowUser]}
+            testID={`assistant-message-${index + 1}-${message.role}`}
+          >
+            <View style={[styles.chatBubble, message.role === "assistant" ? styles.assistantBubble : styles.userBubble]}>
+              <Text
+                style={message.role === "assistant" ? styles.assistantText : styles.userText}
+                testID={`assistant-message-text-${index + 1}-${message.role}`}
+              >
+                {message.text}
+              </Text>
+            </View>
           </View>
         ))}
+        {isThinking && (
+          <View style={[styles.chatRow, styles.chatRowAssistant]}>
+            <View style={[styles.chatBubble, styles.assistantBubble, { backgroundColor: palette.coolLight }]}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <ActivityIndicator size="small" color={palette.cool} style={{ marginRight: 8 }} />
+                <Text style={[styles.assistantText, { color: palette.cool, fontWeight: "600" }]}>Agent thinking...</Text>
+              </View>
+            </View>
+          </View>
+        )}
         <TextInput
           onChangeText={setDraft}
           placeholder="Ask about symptoms, reports, diet, medicines, or next steps..."
@@ -2130,15 +2270,26 @@ function PrimaryButton({
   label,
   onPress,
   compact = false,
+  disabled = false,
   testID,
 }: {
   label: string;
   onPress: () => void;
   compact?: boolean;
+  disabled?: boolean;
   testID?: string;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.button, compact && styles.compactButton]} testID={testID || makeTestId("button", label)}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.button,
+        compact && styles.compactButton,
+        disabled && { opacity: 0.5 },
+      ]}
+      testID={testID || makeTestId("button", label)}
+    >
       <Text style={styles.buttonText}>{label}</Text>
     </Pressable>
   );
@@ -2224,8 +2375,15 @@ const styles = StyleSheet.create({
   compactButton: { alignSelf: "flex-start", minWidth: 100 },
   buttonText: { color: "#FFFFFF", fontWeight: "800", letterSpacing: 0.3 },
   helperText: { color: palette.muted, lineHeight: 20 },
-  chatBubble: { padding: 14, borderRadius: 18 },
-  assistantBubble: { backgroundColor: "#F0F6F4" },
+  quickRow: { marginBottom: 8, gap: 6 },
+  quickChipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  quickChip: { backgroundColor: "#E7F0EB", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: "#d5e4dc" },
+  quickChipText: { color: palette.brandDeep, fontWeight: "700", lineHeight: 18 },
+  chatRow: { width: "100%", marginBottom: 10, paddingHorizontal: 4 },
+  chatRowAssistant: { alignItems: "flex-start" },
+  chatRowUser: { alignItems: "flex-end" },
+  chatBubble: { padding: 14, borderRadius: 18, maxWidth: "82%", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  assistantBubble: { backgroundColor: "#F3F7F5" },
   userBubble: { backgroundColor: palette.brandDeep },
   assistantText: { color: palette.ink, lineHeight: 20 },
   userText: { color: "#FFFFFF", lineHeight: 20 },
@@ -2256,4 +2414,3 @@ const styles = StyleSheet.create({
   logoutBtn: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-end", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)" },
   logoutBtnText: { color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "600" },
 });
-
