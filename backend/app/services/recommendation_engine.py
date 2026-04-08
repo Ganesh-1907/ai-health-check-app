@@ -144,6 +144,10 @@ class RecommendationEngine:
             "foods_to_avoid": list(dict.fromkeys(foods_to_avoid)),
             "medicine_guidance": list(dict.fromkeys(medicine_guidance)),
             "daily_tips": list(dict.fromkeys(daily_tips)),
+            "potential_diseases": [],
+            "causes": [],
+            "remedies": [],
+            "precautions": [],
             "hydration_goal_liters": hydration_goal,
         }
 

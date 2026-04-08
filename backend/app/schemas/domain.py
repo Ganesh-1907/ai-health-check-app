@@ -167,6 +167,10 @@ class RecommendationRead(BaseModel):
     foods_to_avoid: list[str]
     medicine_guidance: list[str]
     daily_tips: list[str]
+    potential_diseases: list[str] = Field(default_factory=list)
+    causes: list[str] = Field(default_factory=list)
+    remedies: list[str] = Field(default_factory=list)
+    precautions: list[str] = Field(default_factory=list)
     hydration_goal_liters: float | None = None
     created_at: datetime
 

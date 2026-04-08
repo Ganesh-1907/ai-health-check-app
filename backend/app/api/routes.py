@@ -38,7 +38,10 @@ from app.services.chatbot import ChatbotService
 from app.services.hospital_locator import HospitalLocator
 from app.services.recommendation_engine import RecommendationEngine
 from app.services.report_parser import ReportParser
+from app.services.retinal_engine import RetinalAnalysisEngine
 from app.services.risk_engine import RiskEngine, calculate_bmi
+from app.services.mri_engine import MRIEngine
+from app.services.ai_consultant import AIConsultant
 
 router = APIRouter()
 settings = get_settings()
@@ -48,6 +51,9 @@ alert_engine = AlertEngine()
 report_parser = ReportParser()
 hospital_locator = HospitalLocator()
 chatbot_service = ChatbotService()
+mri_engine = MRIEngine()
+retinal_engine = RetinalAnalysisEngine()
+ai_consultant = AIConsultant()
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -186,6 +192,10 @@ def _recommendation_to_read(rc: RecommendationPlan) -> RecommendationRead:
         foods_to_avoid=rc.foods_to_avoid,
         medicine_guidance=rc.medicine_guidance,
         daily_tips=rc.daily_tips,
+        potential_diseases=rc.potential_diseases,
+        causes=rc.causes,
+        remedies=rc.remedies,
+        precautions=rc.precautions,
         hydration_goal_liters=rc.hydration_goal_liters,
         created_at=rc.created_at,
     )
@@ -265,6 +275,11 @@ async def _upsert_prediction_and_recommendation(
         prediction = existing_prediction
 
     recommendation_payload = recommendation_engine.build(user, assessment, prediction, reports=reports)
+    
+    # Enrich with AI Clinical Insights
+    clinical_insights = await ai_consultant.get_clinical_deep_dive(user, assessment, prediction)
+    recommendation_payload.update(clinical_insights)
+
     existing_recommendation = await RecommendationPlan.find_one(
         RecommendationPlan.user_id == user.id,
         RecommendationPlan.assessment_id == assessment.id,
@@ -281,6 +296,10 @@ async def _upsert_prediction_and_recommendation(
         existing_recommendation.foods_to_avoid = recommendation_payload["foods_to_avoid"]
         existing_recommendation.medicine_guidance = recommendation_payload["medicine_guidance"]
         existing_recommendation.daily_tips = recommendation_payload["daily_tips"]
+        existing_recommendation.potential_diseases = recommendation_payload["potential_diseases"]
+        existing_recommendation.causes = recommendation_payload["causes"]
+        existing_recommendation.remedies = recommendation_payload["remedies"]
+        existing_recommendation.precautions = recommendation_payload["precautions"]
         existing_recommendation.hydration_goal_liters = recommendation_payload["hydration_goal_liters"]
         existing_recommendation.updated_at = utcnow()
         await existing_recommendation.save()
@@ -648,3 +667,39 @@ async def care_search(
         longitude=payload.longitude,
         radius_meters=payload.radius_meters,
     )
+
+
+# ─── Imaging Analysis ────────────────────────────────────────────────────────
+
+@router.post("/retinal-analysis")
+async def retinal_analysis(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Analyze retinal images for cardiovascular risk visualization."""
+    contents = await file.read()
+    from io import BytesIO
+
+    result = retinal_engine.predict(BytesIO(contents))
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return result
+
+
+# ─── MRI Prediction ──────────────────────────────────────────────────────────
+
+@router.post("/mri-prediction")
+async def mri_prediction(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Classify brain MRI images for tumor detection."""
+    contents = await file.read()
+    from io import BytesIO
+    result = mri_engine.predict(BytesIO(contents))
+    
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+        
+    return result

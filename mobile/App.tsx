@@ -4,7 +4,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   NativeModules,
   Platform,
@@ -14,6 +17,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -24,7 +28,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Circle, Path, Line, Text as TextSvg } from "react-native-svg";
+import Svg, { Circle, Path, Line, Rect, Text as GText } from "react-native-svg";
+const ASvg = Svg as any;
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Location from "expo-location";
@@ -57,6 +62,7 @@ type MainTabParamList = {
   Assistant: undefined;
   Care: undefined;
   Profile: undefined;
+  MRIPrediction: undefined;
 };
 type AuthStackNav = NativeStackNavigationProp<RootStackParamList>;
 type MainTabNav = BottomTabNavigationProp<MainTabParamList>;
@@ -188,6 +194,10 @@ type DashboardPayload = {
     foods_to_avoid: string[];
     medicine_guidance: string[];
     daily_tips: string[];
+    potential_diseases: string[];
+    causes: string[];
+    remedies: string[];
+    precautions: string[];
   } | null;
   active_alerts: Array<{
     id: string;
@@ -221,6 +231,16 @@ type AssessmentResponse = {
   assessment: DashboardPayload["latest_assessment"];
   prediction: PastPrediction;
   recommendation?: DashboardPayload["latest_recommendation"];
+};
+
+type RetinalAnalysisResult = {
+  overall_risk_score: number;
+  overall_risk_percent: number;
+  risk_level: "Low" | "Moderate" | "High";
+  risk_factors: Record<string, number>;
+  features: Record<string, number>;
+  enhanced_image: string;
+  binary_image: string;
 };
 
 type CareLocation = {
@@ -568,7 +588,7 @@ function TrendLineGraph({ points, color = palette.brand, height = 120, maxScale 
         {yAxisTicks.map((tick, i) => (
           <React.Fragment key={i}>
             <Line x1={paddingX} y1={getY(tick)} x2={width - 10} y2={getY(tick)} stroke="rgba(0,0,0,0.05)" strokeWidth="1" />
-            <TextSvg x={5} y={getY(tick) + 4} fontSize="10" fill="rgba(0,0,0,0.4)" fontWeight="600">{tick}</TextSvg>
+            <GText x={5} y={getY(tick) + 4} fontSize="10" fill="rgba(0,0,0,0.4)" fontWeight="600">{tick}</GText>
           </React.Fragment>
         ))}
         
@@ -584,11 +604,11 @@ function TrendLineGraph({ points, color = palette.brand, height = 120, maxScale 
             <Circle cx={getX(i)} cy={getY(v)} r="4" fill={color} />
             {/* Show label only for extremes or last point */}
             {(i === points.length - 1 || v === Math.max(...points)) && (
-              <TextSvg x={getX(i) - 10} y={getY(v) - 10} fontSize="10" fill={color} fontWeight="bold">{v}</TextSvg>
+              <GText x={getX(i) - 10} y={getY(v) - 10} fontSize="10" fill={color} fontWeight="bold">{v}</GText>
             )}
             {/* X Axis Labels */}
             {xLabels[i] && (
-              <TextSvg x={getX(i) - 10} y={height - 5} fontSize="9" fill="rgba(0,0,0,0.4)" fontWeight="600">{xLabels[i]}</TextSvg>
+              <GText x={getX(i) - 10} y={height - 5} fontSize="9" fill="rgba(0,0,0,0.4)" fontWeight="600">{xLabels[i]}</GText>
             )}
           </React.Fragment>
         ))}
@@ -956,6 +976,7 @@ function MainTabs() {
             Dashboard: "pulse",
             Assessment: "clipboard",
             Reports: "document-text",
+            MRIPrediction: "eye",
             Tracking: "analytics",
             Assistant: "chatbubble-ellipses",
             Care: "medkit",
@@ -968,6 +989,7 @@ function MainTabs() {
       <Tab.Screen component={DashboardScreen} name="Dashboard" />
       <Tab.Screen component={AssessmentScreen} name="Assessment" />
       <Tab.Screen component={ReportsScreen} name="Reports" />
+      <Tab.Screen component={RetinalAnalysisScreen} name="MRIPrediction" options={{ title: "Retinal Analysis" }} />
       <Tab.Screen component={TrackingScreen} name="Tracking" />
       <Tab.Screen component={AssistantScreen} name="Assistant" />
       <Tab.Screen component={CareScreen} name="Care" />
@@ -1252,6 +1274,73 @@ function AssessmentResultScreen({ route }: { route: any }) {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <SectionCard title="AI Diagnostic Summary" subtitle="What our analysis found">
            <Text style={{ color: palette.ink, lineHeight: 26, fontSize: 17, opacity: 0.9 }}>{prediction.summary}</Text>
+        </SectionCard>
+
+        <View style={{ height: 16 }} />
+
+        {/* AI Clinical Deep-Dive Section */}
+        <SectionCard 
+            title="AI Clinical Deep-Dive" 
+            subtitle="Advanced analysis of potential conditions"
+            testID="assessment-clinical-deep-dive"
+        >
+            <View style={{ gap: 24 }}>
+                {/* Potential Conditions */}
+                <View style={{ backgroundColor: themeColor + "08", padding: 16, borderRadius: 16 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                        <Ionicons name="pulse" size={20} color={themeColor} />
+                        <Text style={{ color: palette.ink, fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>Potential Risk Indicators</Text>
+                    </View>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                        {(recommendation?.potential_diseases && recommendation.potential_diseases.length > 0) ? recommendation.potential_diseases.map((cond: string, idx: number) => (
+                            <View key={idx} style={{ backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderLeftWidth: 4, borderLeftColor: themeColor }}>
+                                <Text style={{ color: palette.ink, fontWeight: "700", fontSize: 14 }}>{cond}</Text>
+                            </View>
+                        )) : (
+                            <View style={{ padding: 10, backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 10, width: "100%" }}>
+                                <Text style={{ color: palette.muted, fontStyle: "italic", textAlign: "center" }}>Clinical analysis pending further data.</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {/* Causes section with subtle background */}
+                <View>
+                    <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", textTransform: "uppercase", marginBottom: 10, marginLeft: 4 }}>Primary Contributing Factors</Text>
+                    <View style={{ gap: 10 }}>
+                        {recommendation?.causes?.map((cause: string, idx: number) => (
+                            <View key={idx} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", backgroundColor: "rgba(0,0,0,0.02)", padding: 12, borderRadius: 12 }}>
+                                <View style={{ backgroundColor: palette.brand, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
+                                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "800" }}>{idx + 1}</Text>
+                                </View>
+                                <Text style={{ flex: 1, color: palette.ink, fontSize: 14, lineHeight: 20 }}>{cause}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Remedies & Precautions Grid */}
+                <View style={{ flexDirection: "row", gap: 16 }}>
+                    <View style={{ flex: 1, backgroundColor: "rgba(46,204,113,0.05)", padding: 14, borderRadius: 16 }}>
+                        <Text style={{ color: "#27ae60", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Recommended Remedies</Text>
+                        {recommendation?.remedies?.map((item: string, idx: number) => (
+                            <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                                <Ionicons name="medical" size={12} color="#27ae60" style={{ marginTop: 2 }} />
+                                <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: "rgba(230,126,34,0.05)", padding: 14, borderRadius: 16 }}>
+                        <Text style={{ color: "#d35400", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Essential Precautions</Text>
+                        {recommendation?.precautions?.map((item: string, idx: number) => (
+                            <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                                <Ionicons name="shield-checkmark" size={12} color="#e67e22" style={{ marginTop: 2 }} />
+                                <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+            </View>
         </SectionCard>
 
         <View style={{ height: 16 }} />
@@ -1709,7 +1798,7 @@ function AssessmentScreen() {
       </SectionCard>
 
       <SectionCard subtitle="Previous issues, surgeries, medicines, family history" title="Medical History" testID="assessment-medical-history-card">
-        <SelectionGroup
+        <DropdownField
           label="Previous heart disease / surgeries?"
           options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
           onSelect={(val) => setProfile({ ...profile, hasHistory: val as any })}
@@ -1719,7 +1808,7 @@ function AssessmentScreen() {
           <Field label="History details" placeholder="e.g. Angioplasty 2022" value={profile.history} onChangeText={(history) => setProfile({ ...profile, history })} testID="field-assessment-history" />
         )}
 
-        <SelectionGroup
+        <DropdownField
           label="Taking current medicines?"
           options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
           onSelect={(val) => setProfile({ ...profile, hasMedicines: val as any })}
@@ -1729,7 +1818,7 @@ function AssessmentScreen() {
           <Field label="Medicine details" placeholder="e.g. Atorvastatin 20mg" value={profile.medicines} onChangeText={(medicines) => setProfile({ ...profile, medicines })} testID="field-assessment-current-medicines" />
         )}
 
-        <SelectionGroup
+        <DropdownField
           label="Family history of heart problems?"
           options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
           onSelect={(val) => setProfile({ ...profile, hasFamilyHistory: val as any })}
@@ -1741,14 +1830,14 @@ function AssessmentScreen() {
       </SectionCard>
 
       <SectionCard subtitle="Smoking, alcohol, exercise, food, sleep, stress" title="Lifestyle" testID="assessment-lifestyle-card">
-        <SelectionGroup
+        <DropdownField
           label="Smoking"
           options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
           onSelect={(val) => setProfile({ ...profile, smoking: val as any })}
           value={profile.smoking}
         />
 
-        <SelectionGroup
+        <DropdownField
           label="Alcohol"
           options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
           onSelect={(val) => setProfile({ ...profile, alcohol: val as any })}
@@ -1757,7 +1846,7 @@ function AssessmentScreen() {
 
         <Field label="Exercise" placeholder="e.g. 30 min walk" value={profile.exercise} onChangeText={(exercise) => setProfile({ ...profile, exercise })} testID="field-assessment-exercise" />
 
-        <SegmentedPicker
+        <DropdownField
           label="Food habits"
           options={["Normal", "Vegetarian", "Non-Veg", "Balanced"]}
           value={profile.foodHabits}
@@ -1766,7 +1855,7 @@ function AssessmentScreen() {
 
         <Field label="Sleep hours" placeholder="e.g. 7-8" value={profile.sleep} onChangeText={(sleep) => setProfile({ ...profile, sleep })} testID="field-assessment-sleep-hours" />
 
-        <SegmentedPicker
+        <DropdownField
           label="Stress level"
           options={["Low", "Medium", "High"]}
           value={profile.stress}
@@ -2119,6 +2208,441 @@ function TrackingScreen() {
   );
 }
 
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
+}
+
+function describeArc(centerX: number, centerY: number, radius: number, startAngle: number, endAngle: number) {
+  const start = polarToCartesian(centerX, centerY, radius, endAngle);
+  const end = polarToCartesian(centerX, centerY, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+}
+
+function formatAnalysisValue(value: number) {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: value >= 1000 ? 1 : 2,
+    maximumFractionDigits: value >= 1000 ? 1 : 4,
+  });
+}
+
+function RetinalRiskGauge({
+  value,
+  riskLevel,
+  width,
+}: {
+  value: number;
+  riskLevel: RetinalAnalysisResult["risk_level"];
+  width: number;
+}) {
+  const chartWidth = 360;
+  const chartHeight = 228;
+  const centerX = 180;
+  const centerY = 180;
+  const radius = 126;
+  const progressEndAngle = 180 + (180 * clampNumber(value, 0, 100)) / 100;
+  const tickValues = [0, 20, 40, 60, 80, 100];
+  const tone =
+    riskLevel === "Low"
+      ? { bg: "#E8F6FF", fg: "#2A7AAC" }
+      : riskLevel === "Moderate"
+        ? { bg: "#D8ECFA", fg: "#156C94" }
+        : { bg: "#C9E2F4", fg: palette.brandDeep };
+
+  return (
+    <View style={{ alignItems: "center", gap: 8 }}>
+      <ASvg width={width} height={Math.round(width * 0.63)} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+        <Path d={describeArc(centerX, centerY, radius, 180, 240)} fill="none" stroke="#DDF3FF" strokeWidth={28} strokeLinecap="round" />
+        <Path d={describeArc(centerX, centerY, radius, 240, 300)} fill="none" stroke="#B8DDF4" strokeWidth={28} strokeLinecap="round" />
+        <Path d={describeArc(centerX, centerY, radius, 300, 360)} fill="none" stroke="#92C6E8" strokeWidth={28} strokeLinecap="round" />
+        <Path d={describeArc(centerX, centerY, radius, 180, 360)} fill="none" stroke="#C7DCEC" strokeWidth={2} />
+        <Path
+          d={describeArc(centerX, centerY, radius - 10, 180, clampNumber(progressEndAngle, 180, 360))}
+          fill="none"
+          stroke={palette.brandDeep}
+          strokeWidth={20}
+          strokeLinecap="round"
+        />
+
+        {tickValues.map((tick) => {
+          const tickAngle = 180 + (180 * tick) / 100;
+          const tickPoint = polarToCartesian(centerX, centerY, radius + 18, tickAngle);
+          return (
+            <GText
+              key={tick}
+              x={tickPoint.x}
+              y={tickPoint.y + 4}
+              fontSize="10"
+              fill="#7F95AA"
+              textAnchor="middle"
+            >
+              {tick}
+            </GText>
+          );
+        })}
+
+        <GText x={centerX} y="30" fontSize="17" fill="#6C88A4" textAnchor="middle">
+          Cardiovascular Risk
+        </GText>
+        <GText x={centerX} y="156" fontSize="52" fontWeight="400" fill="#6E7993" textAnchor="middle">
+          {value.toFixed(1).replace(/\.0$/, "")}
+        </GText>
+      </ASvg>
+
+      <View
+        style={{
+          backgroundColor: tone.bg,
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: "#C8DCE9",
+        }}
+      >
+        <Text style={{ color: tone.fg, fontWeight: "800", letterSpacing: 0.8 }}>
+          {riskLevel.toUpperCase()} RISK
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function RetinalRiskBarsChart({
+  riskFactors,
+  width,
+}: {
+  riskFactors: Record<string, number>;
+  width: number;
+}) {
+  const preferredOrder = ["Vessel Density Risk", "Vessel Width Risk", "Tortuosity Risk", "Disc Area Risk"];
+  const labelMap: Record<string, string[]> = {
+    "Vessel Density Risk": ["Vessel", "Density"],
+    "Vessel Width Risk": ["Vessel", "Width"],
+    "Tortuosity Risk": ["Tortuosity"],
+    "Disc Area Risk": ["Disc", "Area"],
+  };
+  const orderedEntries = preferredOrder
+    .filter((label) => label in riskFactors)
+    .map((label) => [label, riskFactors[label]] as const);
+  const extras = Object.entries(riskFactors).filter(([label]) => !preferredOrder.includes(label));
+  const entries = [...orderedEntries, ...extras];
+
+  const chartWidth = Math.max(320, width);
+  const chartHeight = 320;
+  const marginLeft = 46;
+  const marginRight = 20;
+  const marginTop = 20;
+  const marginBottom = 74;
+  const plotWidth = chartWidth - marginLeft - marginRight;
+  const plotHeight = chartHeight - marginTop - marginBottom;
+  const minValue = -0.25;
+  const maxValue = 1.0;
+  const range = maxValue - minValue;
+  const ticks = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0];
+  const toY = (value: number) => marginTop + ((maxValue - value) / range) * plotHeight;
+  const zeroY = toY(0);
+  const slotWidth = plotWidth / Math.max(entries.length, 1);
+  const barWidth = Math.min(120, slotWidth * 0.72);
+  const barColors = ["#80B7DE", "#4F98C8", palette.brand, palette.brandDeep, "#2E7EAA"];
+
+  return (
+    <ASvg width={chartWidth} height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+      {ticks.map((tick) => {
+        const y = toY(tick);
+        return (
+          <React.Fragment key={tick}>
+            <Line x1={marginLeft} y1={y} x2={chartWidth - marginRight} y2={y} stroke="#DDEAF3" strokeWidth="1" />
+            <GText x={marginLeft - 10} y={y + 4} fontSize="10" fill="#7890A3" textAnchor="end">
+              {tick.toFixed(tick === 0 ? 0 : 1)}
+            </GText>
+          </React.Fragment>
+        );
+      })}
+
+      <Line x1={marginLeft} y1={zeroY} x2={chartWidth - marginRight} y2={zeroY} stroke="#AEC6D8" strokeWidth="1.2" />
+
+      {entries.map(([label, rawValue], idx) => {
+        const value = clampNumber(rawValue, minValue, maxValue);
+        const x = marginLeft + slotWidth * idx + (slotWidth - barWidth) / 2;
+        const y = value >= 0 ? toY(value) : zeroY;
+        const height = Math.abs(toY(value) - zeroY);
+        const labelLines = labelMap[label] || [label];
+
+        return (
+          <React.Fragment key={label}>
+            <Rect
+              x={x}
+              y={y}
+              width={barWidth}
+              height={Math.max(height, 2)}
+              rx={8}
+              fill={barColors[idx % barColors.length]}
+            />
+            {labelLines.map((line, lineIdx) => (
+              <GText
+                key={`${label}-${line}-${lineIdx}`}
+                x={x + barWidth / 2}
+                y={chartHeight - 34 + lineIdx * 12}
+                fontSize="10"
+                fill="#70879B"
+                textAnchor="middle"
+              >
+                {line}
+              </GText>
+            ))}
+          </React.Fragment>
+        );
+      })}
+    </ASvg>
+);
+}
+
+function RetinalAnalysisScreen() {
+  const [image, setImage] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<RetinalAnalysisResult | null>(null);
+  const navigation = useNavigation<any>();
+  const { userId } = useAppState();
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 980;
+  const gaugeWidth = isWideLayout ? 460 : Math.min(width - 56, 340);
+  const chartWidth = isWideLayout ? Math.min(width - 84, 1080) : Math.max(width - 52, 320);
+  const visualTileHeight = isWideLayout ? 152 : 108;
+
+  const pickImage = async () => {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: "image/*",
+      copyToCacheDirectory: true,
+    });
+    if (!res.canceled && res.assets[0]) {
+      setImage(res.assets[0]);
+      setResult(null);
+    }
+  };
+
+  const runPrediction = async () => {
+    if (!image || !userId) return;
+    setLoading(true);
+    try {
+      const form = new FormData();
+      if (Platform.OS === "web") {
+        const blob = await (await fetch(image.uri)).blob();
+        form.append("file", blob, image.name);
+      } else {
+        form.append("file", {
+          uri: image.uri,
+          name: image.name,
+          type: image.mimeType || "image/jpeg",
+        } as any);
+      }
+
+      const authHeaders = await getAuthHeaders();
+      const response = await fetch(`${apiBaseUrl}/retinal-analysis`, {
+        method: "POST",
+        body: form,
+        headers: {
+          ...authHeaders,
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || "Retinal analysis failed");
+      }
+
+      const data = (await response.json()) as RetinalAnalysisResult;
+      setResult(data);
+    } catch (error) {
+      showAppAlert("Retinal Analysis Error", formatAppError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const riskPercent = result?.overall_risk_percent ?? 0;
+
+  return (
+    <Screen testID="screen-retinal-analysis">
+      <Header eyebrow="Heart Risk From Eye Scan" title="Retinal Analysis" testID="retinal-header" />
+
+      <SectionCard
+        subtitle="Upload a retinal image for cardiovascular screening"
+        title="Image Upload"
+        testID="retinal-upload-card"
+        style={{ backgroundColor: "#F8FCFF", borderColor: "#D7E8F3" }}
+      >
+        {image ? (
+          <View style={{ alignItems: "center", gap: 12 }}>
+            <View style={{ width: "100%", height: 288, borderRadius: 20, backgroundColor: "#08151D", overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
+              <Image source={{ uri: image.uri }} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+            </View>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <PrimaryButton compact label="Change Image" onPress={pickImage} style={{ backgroundColor: "#5D97BE" }} />
+              <PrimaryButton compact label={loading ? "Analyzing..." : "Run Analysis"} onPress={runPrediction} disabled={loading} style={{ backgroundColor: palette.brandDeep }} />
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            onPress={pickImage}
+            style={{
+              height: 160,
+              borderStyle: "dashed",
+              borderWidth: 2,
+              borderColor: "#BFD8EA",
+              borderRadius: 24,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: "#F1F9FF"
+            }}
+          >
+            <Ionicons name="cloud-upload" size={40} color={palette.cool} />
+            <Text style={{ color: palette.brand, fontWeight: "700" }}>Tap to upload retinal scan</Text>
+            <Text style={{ color: palette.muted, fontSize: 12 }}>Supports JPG, PNG</Text>
+          </Pressable>
+        )}
+      </SectionCard>
+
+      {loading && (
+        <View style={{ padding: 40, alignItems: "center", gap: 16 }}>
+          <ActivityIndicator size="large" color={palette.brand} />
+          <Text style={{ color: palette.muted, fontWeight: "600" }}>Analyzing vessels, tortuosity, and optic disc patterns...</Text>
+        </View>
+      )}
+
+      {result && image && (
+        <View style={{ gap: 20 }}>
+          <SectionCard
+            subtitle="Cardiovascular screening score based on retinal features"
+            title="Cardiovascular Risk"
+            testID="retinal-result-card"
+            style={{ backgroundColor: "#F8FCFF", borderColor: "#D7E8F3" }}
+          >
+            <LinearGradient
+              colors={["#F9FDFF", "#EFF8FF"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: 24, paddingVertical: 10, alignItems: "center" }}
+            >
+              <RetinalRiskGauge value={riskPercent} riskLevel={result.risk_level || "Low"} width={gaugeWidth} />
+            </LinearGradient>
+          </SectionCard>
+
+          {result.risk_factors && (
+            <SectionCard
+              subtitle="Detailed Risk Factors"
+              title="Risk Factors Breakdown"
+              testID="retinal-risk-chart-card"
+              style={{ backgroundColor: "#FCFEFF", borderColor: "#D7E8F3" }}
+            >
+              <View style={{ alignItems: "center" }}>
+                <RetinalRiskBarsChart riskFactors={result.risk_factors} width={chartWidth} />
+              </View>
+            </SectionCard>
+          )}
+
+          <View style={{ flexDirection: isWideLayout ? "row" : "column", gap: 18 }}>
+            {result.features && (
+              <SectionCard
+                subtitle="Feature Values"
+                title="Measurements"
+                testID="retinal-feature-values-card"
+                style={{ flex: isWideLayout ? 0.9 : undefined, backgroundColor: "#FCFEFF", borderColor: "#D7E8F3" }}
+              >
+                <View style={{ borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
+                  <View style={{ flexDirection: "row", backgroundColor: "#EAF4FA", borderBottomWidth: 1, borderBottomColor: "#D7E8F3" }}>
+                    <Text style={{ flex: 1, padding: 12, fontWeight: "700", color: "#567286" }}>Feature</Text>
+                    <View style={{ width: 1, backgroundColor: "#D7E8F3" }} />
+                    <Text style={{ flex: 1, padding: 12, fontWeight: "700", color: "#567286" }}>Value</Text>
+                  </View>
+                  {Object.entries(result.features).map(([key, value], idx, entries) => (
+                    <View
+                      key={key}
+                      style={{
+                        flexDirection: "row",
+                        backgroundColor: idx % 2 === 0 ? "#FFFFFF" : "#F7FBFE",
+                        borderBottomWidth: idx === entries.length - 1 ? 0 : 1,
+                        borderBottomColor: "#E1EDF5",
+                      }}
+                    >
+                      <Text style={{ flex: 1, padding: 12, fontSize: 14, color: palette.ink }}>{key}</Text>
+                      <View style={{ width: 1, backgroundColor: "#E1EDF5" }} />
+                      <Text style={{ flex: 1, padding: 12, fontSize: 14, color: palette.brandDeep, fontWeight: "700" }}>
+                        {formatAnalysisValue(Number(value) || 0)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </SectionCard>
+            )}
+
+            <SectionCard
+              subtitle="Original, enhanced, and segmented retinal views"
+              title="Visual Analysis"
+              testID="retinal-visual-card"
+              style={{ flex: isWideLayout ? 1.25 : undefined, backgroundColor: "#FCFEFF", borderColor: "#D7E8F3" }}
+            >
+              <View style={{ flexDirection: isWideLayout ? "row" : "column", justifyContent: "space-between", gap: 10 }}>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <View style={{ width: "100%", height: visualTileHeight, borderRadius: 16, backgroundColor: "#07141C", overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
+                    <Image source={{ uri: image.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  </View>
+                  <Text style={{ fontSize: 10, color: "#6E879A", marginTop: 6, fontWeight: "700", letterSpacing: 0.7 }}>ORIGINAL</Text>
+                </View>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <View style={{ width: "100%", height: visualTileHeight, borderRadius: 16, backgroundColor: "#07141C", overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
+                    {result.enhanced_image ? (
+                      <Image source={{ uri: `data:image/jpeg;base64,${result.enhanced_image}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Ionicons name="image-outline" size={32} color={palette.muted} /></View>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 10, color: "#6E879A", marginTop: 6, fontWeight: "700", letterSpacing: 0.7 }}>ENHANCED</Text>
+                </View>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <View style={{ width: "100%", height: visualTileHeight, borderRadius: 16, backgroundColor: "#07141C", overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
+                    {result.binary_image ? (
+                      <Image source={{ uri: `data:image/jpeg;base64,${result.binary_image}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Ionicons name="image-outline" size={32} color={palette.muted} /></View>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 10, color: "#6E879A", marginTop: 6, fontWeight: "700", letterSpacing: 0.7 }}>SEGMENTED</Text>
+                </View>
+              </View>
+            </SectionCard>
+          </View>
+
+          <SectionCard
+            subtitle="Use this output as a screening aid, not a diagnosis"
+            title="Next Steps"
+            testID="retinal-guidance-card"
+            style={{ backgroundColor: "#F8FCFF", borderColor: "#D7E8F3" }}
+          >
+            <Text style={styles.listItem}>• Review this result together with blood pressure, sugar, and cholesterol history.</Text>
+            <Text style={styles.listItem}>• If the score is high or symptoms are present, consult a cardiologist or ophthalmologist.</Text>
+            <PrimaryButton
+              label="Find Nearby Cardiac Care"
+              onPress={() => navigation.navigate("Care")}
+              compact
+              style={{ marginTop: 10, alignSelf: "center", backgroundColor: palette.cool }}
+            />
+          </SectionCard>
+        </View>
+      )}
+    </Screen>
+  );
+}
+
 function AssistantScreen() {
   const { messages, sendChat, resetChat } = useAppState();
   const [draft, setDraft] = useState("");
@@ -2427,9 +2951,104 @@ function Header({ eyebrow, title, testID }: { eyebrow: string; title: string; te
   );
 }
 
-function SectionCard({ children, subtitle, title, testID }: { children: React.ReactNode; subtitle: string; title: string; testID?: string }) {
+function DropdownField({
+  label,
+  options,
+  value,
+  onSelect,
+  testID,
+}: {
+  label: string;
+  options: { label: string; value: string }[] | string[];
+  value: string;
+  onSelect: (val: string) => void;
+  testID?: string;
+}) {
+  const [modalVisible, setModalVisible] = useState(false);
+  const normalizedOptions = options.map((opt) => (typeof opt === "string" ? { label: opt, value: opt } : opt));
+
   return (
-    <View style={styles.card} testID={testID || makeTestId("card", title)}>
+    <View style={{ marginBottom: 16 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        style={({ pressed }) => [
+          {
+            backgroundColor: "#f8f9fa",
+            borderRadius: 12,
+            borderWidth: 1.5,
+            borderColor: palette.line,
+            padding: 16,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          },
+          pressed && { opacity: 0.7, borderColor: palette.brand },
+        ]}
+        testID={testID}
+      >
+        <Text style={{ color: value ? palette.ink : palette.muted, fontSize: 16, fontWeight: "600" }}>
+          {normalizedOptions.find((o) => o.value === value)?.label || "Select an option..."}
+        </Text>
+        <Ionicons name="chevron-down" size={20} color={palette.muted} />
+      </Pressable>
+
+      <Modal animationType="fade" transparent visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: 30 }}
+          onPress={() => setModalVisible(false)}
+        >
+          <View style={{ backgroundColor: "#fff", borderRadius: 24, padding: 16, maxHeight: "60%" }}>
+            <Text style={{ fontSize: 18, fontWeight: "900", color: palette.ink, marginBottom: 16, textAlign: "center" }}>{label}</Text>
+            <ScrollView>
+              {normalizedOptions.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    onSelect(opt.value);
+                    setModalVisible(false);
+                  }}
+                  style={{
+                    padding: 18,
+                    borderRadius: 12,
+                    backgroundColor: value === opt.value ? "rgba(13,110,110,0.05)" : "transparent",
+                    marginBottom: 4,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: value === opt.value ? palette.brand : palette.ink,
+                      fontWeight: value === opt.value ? "800" : "500",
+                    }}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+function SectionCard({
+  children,
+  subtitle,
+  title,
+  testID,
+  style,
+}: {
+  children: React.ReactNode;
+  subtitle: string;
+  title: string;
+  testID?: string;
+  style?: any;
+}) {
+  return (
+    <View style={[styles.card, style]} testID={testID || makeTestId("card", title)}>
       <Text style={styles.cardEyebrow}>{subtitle}</Text>
       <Text style={styles.cardTitle}>{title}</Text>
       {children}
