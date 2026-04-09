@@ -144,6 +144,8 @@ class RecommendationEngine:
             "foods_to_avoid": list(dict.fromkeys(foods_to_avoid)),
             "medicine_guidance": list(dict.fromkeys(medicine_guidance)),
             "daily_tips": list(dict.fromkeys(daily_tips)),
+            "current_condition_signals": [],
+            "future_risk_diseases": [],
             "potential_diseases": [],
             "causes": [],
             "remedies": [],

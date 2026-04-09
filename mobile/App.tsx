@@ -78,6 +78,97 @@ const fallbackMedicineGuidance = [
   "Continue prescribed medicines exactly as your doctor advised.",
   "Do not start or stop prescription medicines without consulting a doctor.",
 ];
+const fallbackClinicalInsightsByRisk: Record<
+  "High" | "Medium" | "Low",
+  {
+    current_condition_signals: string[];
+    future_risk_diseases: string[];
+    causes: string[];
+    remedies: string[];
+    precautions: string[];
+    medicine_guidance: string[];
+  }
+> = {
+  High: {
+    current_condition_signals: [
+      "Possible severe cardiovascular strain",
+      "Possible uncontrolled hypertension pattern",
+    ],
+    future_risk_diseases: [
+      "Possible acute coronary syndrome risk",
+      "Possible stroke or heart failure risk",
+    ],
+    causes: [
+      "Significantly elevated blood pressure or cardiac workload markers",
+      "Combined symptom burden and unstable health indicators",
+      "Lifestyle or metabolic stress may be worsening the current profile",
+    ],
+    remedies: [
+      "Arrange an urgent doctor or hospital review as early as possible.",
+      "Keep a written record of BP, sugar, pulse, and symptoms for the consultation.",
+      "Reduce exertion until a clinician reviews the current risk pattern.",
+    ],
+    precautions: [
+      "Seek urgent help if chest pain, severe breathlessness, fainting, or worsening weakness appears.",
+      "Avoid salty packaged food, stimulants, smoking, and alcohol for now.",
+      "Do not ignore repeated abnormal readings over the next 24-48 hours.",
+    ],
+    medicine_guidance: [
+      ...fallbackMedicineGuidance,
+      "Because the current profile is high risk, doctor review of BP, sugar, and cholesterol medicines should not be delayed.",
+    ],
+  },
+  Medium: {
+    current_condition_signals: [
+      "Possible early hypertension pattern",
+      "Possible metabolic imbalance affecting heart risk",
+    ],
+    future_risk_diseases: [
+      "Possible coronary artery disease risk",
+      "Possible diabetes-related heart complications over time",
+    ],
+    causes: [
+      "Persistent BP, sugar, or cholesterol elevation may be contributing.",
+      "Food, stress, sleep, or exercise habits may be increasing risk.",
+      "Symptoms suggest closer follow-up rather than waiting too long.",
+    ],
+    remedies: [
+      "Schedule a routine doctor review and repeat vitals soon.",
+      "Follow a lower-salt, lower-sugar, heart-healthy meal pattern consistently.",
+      "Add regular moderate activity only at a safe pace for your condition.",
+    ],
+    precautions: [
+      "Track BP, sugar, and symptoms consistently for trend changes.",
+      "Cut down processed foods, sugary drinks, smoking, and excess alcohol.",
+      "Escalate sooner if symptoms become more frequent or intense.",
+    ],
+    medicine_guidance: [
+      ...fallbackMedicineGuidance,
+      "A doctor may review whether BP, sugar, or cholesterol medicines need adjustment after repeat readings.",
+    ],
+  },
+  Low: {
+    current_condition_signals: [
+      "No major current warning pattern detected from this assessment",
+    ],
+    future_risk_diseases: [
+      "Low near-term cardiovascular progression risk if healthy habits continue",
+    ],
+    causes: [
+      "Current inputs do not show a strong high-risk cardiovascular pattern.",
+      "Healthy routines may be helping keep the profile more stable.",
+    ],
+    remedies: [
+      "Continue preventive heart-healthy habits and routine health checks.",
+      "Stay active, hydrated, and consistent with sleep and stress control.",
+    ],
+    precautions: [
+      "Do not ignore new symptoms even if the current risk estimate is lower.",
+      "Repeat screening periodically to catch changes early.",
+    ],
+    medicine_guidance: fallbackMedicineGuidance,
+  },
+};
 const sampleQuestions = [
   "What are early warning signs of a heart attack?",
   "Is chest pain while climbing stairs serious?",
@@ -125,6 +216,57 @@ function resolveApiBaseUrl(): string {
 }
 
 const apiBaseUrl = resolveApiBaseUrl();
+
+function sanitizeInsightItems(items?: string[] | null): string[] {
+  if (!Array.isArray(items)) return [];
+  return Array.from(
+    new Set(
+      items
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean),
+    ),
+  );
+}
+
+function buildClinicalFallback(
+  prediction: Pick<PastPrediction, "risk_level">,
+  assessment?: DashboardPayload["latest_assessment"] | null,
+) {
+  const riskLevel = prediction.risk_level === "High" || prediction.risk_level === "Medium" ? prediction.risk_level : "Low";
+  const base = fallbackClinicalInsightsByRisk[riskLevel];
+  const symptoms = sanitizeInsightItems(assessment?.symptoms);
+  const causes = [...base.causes];
+  const remedies = [...base.remedies];
+  const precautions = [...base.precautions];
+
+  if ((assessment?.systolic_bp || 0) >= 140 || (assessment?.diastolic_bp || 0) >= 90) {
+    causes.unshift("Blood pressure is in a range that deserves prompt clinician review.");
+    precautions.unshift("Take repeated BP readings calmly and seek review if high values continue.");
+  }
+  if ((assessment?.blood_sugar || 0) >= 126) {
+    causes.unshift("Blood sugar may be contributing to vascular and heart stress.");
+    remedies.push("Reduce refined sugar intake and review glucose control with a clinician.");
+  }
+  if ((assessment?.cholesterol || 0) >= 200) {
+    causes.push("Cholesterol elevation may be increasing long-term vascular risk.");
+    remedies.push("Prefer fiber-rich meals and discuss lipid management during follow-up.");
+  }
+  if ((assessment?.bmi || 0) >= 25) {
+    remedies.push("Portion control and gradual weight reduction can support lower heart risk.");
+  }
+  if (symptoms.length) {
+    causes.unshift(`Reported symptoms increasing concern: ${symptoms.join(", ")}.`);
+  }
+
+  return {
+    current_condition_signals: base.current_condition_signals,
+    future_risk_diseases: base.future_risk_diseases,
+    causes: sanitizeInsightItems(causes),
+    remedies: sanitizeInsightItems(remedies),
+    precautions: sanitizeInsightItems(precautions),
+    medicine_guidance: sanitizeInsightItems(base.medicine_guidance),
+  };
+}
 
 function getWeeklyStats(logs: DailyLogEntry[]) {
   // Get unique logs per day to avoid duplicates showing up in the graph
@@ -194,6 +336,8 @@ type DashboardPayload = {
     foods_to_avoid: string[];
     medicine_guidance: string[];
     daily_tips: string[];
+    current_condition_signals: string[];
+    future_risk_diseases: string[];
     potential_diseases: string[];
     causes: string[];
     remedies: string[];
@@ -1237,6 +1381,7 @@ function SignupScreen() {
 
 function AssessmentResultScreen({ route }: { route: any }) {
   const navigation = useNavigation<any>();
+  const { width } = useWindowDimensions();
   const res = route.params?.result as AssessmentResponse;
   
   if (!res || !res.prediction) {
@@ -1258,6 +1403,40 @@ function AssessmentResultScreen({ route }: { route: any }) {
   const isHigh = prediction.risk_level === "High";
   const isMed = prediction.risk_level === "Medium";
   const themeColor = isHigh ? palette.danger : isMed ? palette.warning : "#2e7d32";
+  const stackClinicalColumns = width < 920;
+  const fallbackClinical = buildClinicalFallback(prediction, assessment);
+  const potentialDiseases = sanitizeInsightItems(recommendation?.potential_diseases);
+  const currentConditionSignals = sanitizeInsightItems(recommendation?.current_condition_signals);
+  const futureRiskDiseases = sanitizeInsightItems(recommendation?.future_risk_diseases);
+  const contributingCauses = sanitizeInsightItems(recommendation?.causes);
+  const remedies = sanitizeInsightItems(recommendation?.remedies);
+  const precautions = sanitizeInsightItems(recommendation?.precautions);
+  const medicineGuidance = sanitizeInsightItems(recommendation?.medicine_guidance);
+
+  const displayCurrentConditionSignals =
+    currentConditionSignals.length > 0
+      ? currentConditionSignals
+      : potentialDiseases.length > 0
+        ? potentialDiseases
+        : fallbackClinical.current_condition_signals;
+  const displayFutureRiskDiseases =
+    futureRiskDiseases.length > 0
+      ? futureRiskDiseases
+      : potentialDiseases.length > 0
+        ? potentialDiseases
+        : fallbackClinical.future_risk_diseases;
+  const displayCauses = contributingCauses.length > 0 ? contributingCauses : fallbackClinical.causes;
+  const displayRemedies = remedies.length > 0 ? remedies : fallbackClinical.remedies;
+  const displayPrecautions = precautions.length > 0 ? precautions : fallbackClinical.precautions;
+  const displayMedicineGuidance = medicineGuidance.length > 0 ? medicineGuidance : fallbackClinical.medicine_guidance;
+  const hasClinicalDeepDive = [
+    displayCurrentConditionSignals,
+    displayFutureRiskDiseases,
+    displayCauses,
+    displayRemedies,
+    displayPrecautions,
+    displayMedicineGuidance,
+  ].some((items) => items.length > 0);
 
   return (
     <Screen testID="screen-assessment-result">
@@ -1279,69 +1458,107 @@ function AssessmentResultScreen({ route }: { route: any }) {
         <View style={{ height: 16 }} />
 
         {/* AI Clinical Deep-Dive Section */}
-        <SectionCard 
-            title="AI Clinical Deep-Dive" 
-            subtitle="Advanced analysis of potential conditions"
-            testID="assessment-clinical-deep-dive"
-        >
-            <View style={{ gap: 24 }}>
-                {/* Potential Conditions */}
-                <View style={{ backgroundColor: themeColor + "08", padding: 16, borderRadius: 16 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                        <Ionicons name="pulse" size={20} color={themeColor} />
-                        <Text style={{ color: palette.ink, fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>Potential Risk Indicators</Text>
+        {hasClinicalDeepDive && (
+          <SectionCard 
+              title="AI Clinical Deep-Dive" 
+              subtitle="Advanced analysis of potential conditions"
+              testID="assessment-clinical-deep-dive"
+          >
+              <View style={{ gap: 24 }}>
+                  {displayCurrentConditionSignals.length > 0 && (
+                    <View style={{ backgroundColor: themeColor + "08", padding: 16, borderRadius: 16 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                            <Ionicons name="pulse" size={20} color={themeColor} />
+                            <Text style={{ color: palette.ink, fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>Possible Current Condition Signals</Text>
+                        </View>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                            {displayCurrentConditionSignals.map((cond: string, idx: number) => (
+                                <View key={idx} style={{ backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderLeftWidth: 4, borderLeftColor: themeColor }}>
+                                    <Text style={{ color: palette.ink, fontWeight: "700", fontSize: 14 }}>{cond}</Text>
+                                </View>
+                            ))}
+                        </View>
                     </View>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                        {(recommendation?.potential_diseases && recommendation.potential_diseases.length > 0) ? recommendation.potential_diseases.map((cond: string, idx: number) => (
-                            <View key={idx} style={{ backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderLeftWidth: 4, borderLeftColor: themeColor }}>
-                                <Text style={{ color: palette.ink, fontWeight: "700", fontSize: 14 }}>{cond}</Text>
-                            </View>
-                        )) : (
-                            <View style={{ padding: 10, backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 10, width: "100%" }}>
-                                <Text style={{ color: palette.muted, fontStyle: "italic", textAlign: "center" }}>Clinical analysis pending further data.</Text>
-                            </View>
+                  )}
+
+                  {displayFutureRiskDiseases.length > 0 && (
+                    <View style={{ backgroundColor: palette.brand + "08", padding: 16, borderRadius: 16 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                            <Ionicons name="git-network" size={20} color={palette.brand} />
+                            <Text style={{ color: palette.ink, fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 }}>Possible Future Disease Risks</Text>
+                        </View>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                            {displayFutureRiskDiseases.map((cond: string, idx: number) => (
+                                <View key={idx} style={{ backgroundColor: "#fff", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderLeftWidth: 4, borderLeftColor: palette.brand }}>
+                                    <Text style={{ color: palette.ink, fontWeight: "700", fontSize: 14 }}>{cond}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                  )}
+
+                  {displayCauses.length > 0 && (
+                    <View>
+                        <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", textTransform: "uppercase", marginBottom: 10, marginLeft: 4 }}>Primary Contributing Factors</Text>
+                        <View style={{ gap: 10 }}>
+                            {displayCauses.map((cause: string, idx: number) => (
+                                <View key={idx} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", backgroundColor: "rgba(0,0,0,0.02)", padding: 12, borderRadius: 12 }}>
+                                    <View style={{ backgroundColor: palette.brand, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
+                                        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "800" }}>{idx + 1}</Text>
+                                    </View>
+                                    <Text style={{ flex: 1, color: palette.ink, fontSize: 14, lineHeight: 20 }}>{cause}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                  )}
+
+                  {(displayRemedies.length > 0 || displayPrecautions.length > 0) && (
+                    <View style={{ flexDirection: stackClinicalColumns ? "column" : "row", gap: 16 }}>
+                        {displayRemedies.length > 0 && (
+                          <View style={{ flex: 1, backgroundColor: "rgba(46,204,113,0.05)", padding: 14, borderRadius: 16 }}>
+                              <Text style={{ color: "#27ae60", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Recommended Remedies</Text>
+                              {displayRemedies.map((item: string, idx: number) => (
+                                  <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                                      <Ionicons name="medical" size={12} color="#27ae60" style={{ marginTop: 2 }} />
+                                      <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
+                                  </View>
+                              ))}
+                          </View>
+                        )}
+                        {displayPrecautions.length > 0 && (
+                          <View style={{ flex: 1, backgroundColor: "rgba(230,126,34,0.05)", padding: 14, borderRadius: 16 }}>
+                              <Text style={{ color: "#d35400", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Essential Precautions</Text>
+                              {displayPrecautions.map((item: string, idx: number) => (
+                                  <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                                      <Ionicons name="shield-checkmark" size={12} color="#e67e22" style={{ marginTop: 2 }} />
+                                      <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
+                                  </View>
+                              ))}
+                          </View>
                         )}
                     </View>
-                </View>
+                  )}
 
-                {/* Causes section with subtle background */}
-                <View>
-                    <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", textTransform: "uppercase", marginBottom: 10, marginLeft: 4 }}>Primary Contributing Factors</Text>
-                    <View style={{ gap: 10 }}>
-                        {recommendation?.causes?.map((cause: string, idx: number) => (
-                            <View key={idx} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", backgroundColor: "rgba(0,0,0,0.02)", padding: 12, borderRadius: 12 }}>
-                                <View style={{ backgroundColor: palette.brand, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
-                                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "800" }}>{idx + 1}</Text>
-                                </View>
-                                <Text style={{ flex: 1, color: palette.ink, fontSize: 14, lineHeight: 20 }}>{cause}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Remedies & Precautions Grid */}
-                <View style={{ flexDirection: "row", gap: 16 }}>
-                    <View style={{ flex: 1, backgroundColor: "rgba(46,204,113,0.05)", padding: 14, borderRadius: 16 }}>
-                        <Text style={{ color: "#27ae60", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Recommended Remedies</Text>
-                        {recommendation?.remedies?.map((item: string, idx: number) => (
+                  {displayMedicineGuidance.length > 0 && (
+                    <View style={{ backgroundColor: "rgba(13,110,110,0.06)", padding: 14, borderRadius: 16 }}>
+                        <Text style={{ color: palette.brandDeep, fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Medicine / Doctor Discussion Points</Text>
+                        {displayMedicineGuidance.map((item: string, idx: number) => (
                             <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                                <Ionicons name="medical" size={12} color="#27ae60" style={{ marginTop: 2 }} />
-                                <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
+                                <Ionicons name="medkit" size={13} color={palette.brandDeep} style={{ marginTop: 2 }} />
+                                <Text style={{ flex: 1, color: palette.ink, fontSize: 13, lineHeight: 18, fontWeight: "500" }}>{item}</Text>
                             </View>
                         ))}
+                        <View style={{ marginTop: 8, backgroundColor: "rgba(13,110,110,0.08)", padding: 10, borderRadius: 12 }}>
+                            <Text style={{ color: palette.brandDeep, fontSize: 12, lineHeight: 18 }}>
+                                This section is for doctor-guided discussion only. Do not self-start or stop prescription medicines based only on AI output.
+                            </Text>
+                        </View>
                     </View>
-                    <View style={{ flex: 1, backgroundColor: "rgba(230,126,34,0.05)", padding: 14, borderRadius: 16 }}>
-                        <Text style={{ color: "#d35400", fontSize: 11, fontWeight: "900", textTransform: "uppercase", marginBottom: 12 }}>Essential Precautions</Text>
-                        {recommendation?.precautions?.map((item: string, idx: number) => (
-                            <View key={idx} style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                                <Ionicons name="shield-checkmark" size={12} color="#e67e22" style={{ marginTop: 2 }} />
-                                <Text style={{ flex: 1, color: palette.ink, fontSize: 12, lineHeight: 16, fontWeight: "500" }}>{item}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-            </View>
-        </SectionCard>
+                  )}
+              </View>
+          </SectionCard>
+        )}
 
         <View style={{ height: 16 }} />
 
@@ -1723,6 +1940,39 @@ function AssessmentScreen() {
   const navigation = useNavigation<any>();
   const { dashboard, submitAssessment, syncing } = useAppState();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const yesNoOptions = [
+    { label: "No", value: "no" },
+    { label: "Yes", value: "yes" },
+  ];
+  const genderOptions = [
+    { label: "Male", value: "Male" },
+    { label: "Female", value: "Female" },
+    { label: "Other", value: "Other" },
+  ];
+  const exerciseOptions = [
+    { label: "Sedentary", value: "sedentary" },
+    { label: "Light 15-20 mins/day", value: "low" },
+    { label: "Moderate 30 mins/day", value: "moderate" },
+    { label: "Active 45+ mins/day", value: "active" },
+  ];
+  const foodHabitOptions = [
+    { label: "Balanced Diet", value: "Balanced" },
+    { label: "Vegetarian", value: "Vegetarian" },
+    { label: "Non-Veg", value: "Non-Veg" },
+    { label: "Mostly Junk / Irregular", value: "Irregular" },
+  ];
+  const sleepOptions = [
+    { label: "Less than 5 hours", value: "4.5" },
+    { label: "5 to 6 hours", value: "5.5" },
+    { label: "7 to 8 hours", value: "7.5" },
+    { label: "More than 8 hours", value: "8.5" },
+  ];
+  const stressOptions = [
+    { label: "Low", value: "Low" },
+    { label: "Medium", value: "Medium" },
+    { label: "High", value: "High" },
+    { label: "Very High", value: "Severe" },
+  ];
 
   const [profile, setProfile] = useState<AssessmentFormState>({
     name: dashboard?.user.name || "",
@@ -1744,9 +1994,9 @@ function AssessmentScreen() {
     familyHistory: "",
     smoking: "no",
     alcohol: "no",
-    exercise: "30 mins/day",
-    foodHabits: "Normal",
-    sleep: "8",
+    exercise: "moderate",
+    foodHabits: "Balanced",
+    sleep: "7.5",
     stress: "Low",
   });
 
@@ -1768,7 +2018,13 @@ function AssessmentScreen() {
             <Field label="Age" value={profile.age} onChangeText={(age) => setProfile({ ...profile, age })} testID="field-assessment-age" />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="Gender" value={profile.gender} onChangeText={(gender) => setProfile({ ...profile, gender })} testID="field-assessment-gender" />
+            <DropdownField
+              label="Gender"
+              options={genderOptions}
+              value={profile.gender}
+              onSelect={(gender) => setProfile({ ...profile, gender })}
+              testID="field-assessment-gender"
+            />
           </View>
         </View>
       </SectionCard>
@@ -1800,7 +2056,7 @@ function AssessmentScreen() {
       <SectionCard subtitle="Previous issues, surgeries, medicines, family history" title="Medical History" testID="assessment-medical-history-card">
         <DropdownField
           label="Previous heart disease / surgeries?"
-          options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+          options={yesNoOptions}
           onSelect={(val) => setProfile({ ...profile, hasHistory: val as any })}
           value={profile.hasHistory}
         />
@@ -1810,7 +2066,7 @@ function AssessmentScreen() {
 
         <DropdownField
           label="Taking current medicines?"
-          options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+          options={yesNoOptions}
           onSelect={(val) => setProfile({ ...profile, hasMedicines: val as any })}
           value={profile.hasMedicines}
         />
@@ -1820,7 +2076,7 @@ function AssessmentScreen() {
 
         <DropdownField
           label="Family history of heart problems?"
-          options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+          options={yesNoOptions}
           onSelect={(val) => setProfile({ ...profile, hasFamilyHistory: val as any })}
           value={profile.hasFamilyHistory}
         />
@@ -1832,34 +2088,48 @@ function AssessmentScreen() {
       <SectionCard subtitle="Smoking, alcohol, exercise, food, sleep, stress" title="Lifestyle" testID="assessment-lifestyle-card">
         <DropdownField
           label="Smoking"
-          options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+          options={yesNoOptions}
           onSelect={(val) => setProfile({ ...profile, smoking: val as any })}
           value={profile.smoking}
         />
 
         <DropdownField
           label="Alcohol"
-          options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+          options={yesNoOptions}
           onSelect={(val) => setProfile({ ...profile, alcohol: val as any })}
           value={profile.alcohol}
         />
 
-        <Field label="Exercise" placeholder="e.g. 30 min walk" value={profile.exercise} onChangeText={(exercise) => setProfile({ ...profile, exercise })} testID="field-assessment-exercise" />
+        <DropdownField
+          label="Exercise level"
+          options={exerciseOptions}
+          value={profile.exercise}
+          onSelect={(exercise) => setProfile({ ...profile, exercise })}
+          testID="field-assessment-exercise"
+        />
 
         <DropdownField
           label="Food habits"
-          options={["Normal", "Vegetarian", "Non-Veg", "Balanced"]}
+          options={foodHabitOptions}
           value={profile.foodHabits}
           onSelect={(val) => setProfile({ ...profile, foodHabits: val })}
+          testID="field-assessment-food-habits"
         />
 
-        <Field label="Sleep hours" placeholder="e.g. 7-8" value={profile.sleep} onChangeText={(sleep) => setProfile({ ...profile, sleep })} testID="field-assessment-sleep-hours" />
+        <DropdownField
+          label="Sleep hours"
+          options={sleepOptions}
+          value={profile.sleep}
+          onSelect={(sleep) => setProfile({ ...profile, sleep })}
+          testID="field-assessment-sleep-hours"
+        />
 
         <DropdownField
           label="Stress level"
-          options={["Low", "Medium", "High"]}
+          options={stressOptions}
           value={profile.stress}
           onSelect={(val) => setProfile({ ...profile, stress: val })}
+          testID="field-assessment-stress-level"
         />
       </SectionCard>
 

@@ -192,6 +192,8 @@ def _recommendation_to_read(rc: RecommendationPlan) -> RecommendationRead:
         foods_to_avoid=rc.foods_to_avoid,
         medicine_guidance=rc.medicine_guidance,
         daily_tips=rc.daily_tips,
+        current_condition_signals=rc.current_condition_signals,
+        future_risk_diseases=rc.future_risk_diseases,
         potential_diseases=rc.potential_diseases,
         causes=rc.causes,
         remedies=rc.remedies,
@@ -275,10 +277,17 @@ async def _upsert_prediction_and_recommendation(
         prediction = existing_prediction
 
     recommendation_payload = recommendation_engine.build(user, assessment, prediction, reports=reports)
+    base_medicine_guidance = list(recommendation_payload.get("medicine_guidance", []))
     
     # Enrich with AI Clinical Insights
     clinical_insights = await ai_consultant.get_clinical_deep_dive(user, assessment, prediction)
     recommendation_payload.update(clinical_insights)
+    recommendation_payload["medicine_guidance"] = list(
+        dict.fromkeys([
+            *base_medicine_guidance,
+            *clinical_insights.get("medicine_guidance", []),
+        ])
+    )
 
     existing_recommendation = await RecommendationPlan.find_one(
         RecommendationPlan.user_id == user.id,
@@ -296,6 +305,8 @@ async def _upsert_prediction_and_recommendation(
         existing_recommendation.foods_to_avoid = recommendation_payload["foods_to_avoid"]
         existing_recommendation.medicine_guidance = recommendation_payload["medicine_guidance"]
         existing_recommendation.daily_tips = recommendation_payload["daily_tips"]
+        existing_recommendation.current_condition_signals = recommendation_payload["current_condition_signals"]
+        existing_recommendation.future_risk_diseases = recommendation_payload["future_risk_diseases"]
         existing_recommendation.potential_diseases = recommendation_payload["potential_diseases"]
         existing_recommendation.causes = recommendation_payload["causes"]
         existing_recommendation.remedies = recommendation_payload["remedies"]

@@ -167,6 +167,8 @@ class RecommendationRead(BaseModel):
     foods_to_avoid: list[str]
     medicine_guidance: list[str]
     daily_tips: list[str]
+    current_condition_signals: list[str] = Field(default_factory=list)
+    future_risk_diseases: list[str] = Field(default_factory=list)
     potential_diseases: list[str] = Field(default_factory=list)
     causes: list[str] = Field(default_factory=list)
     remedies: list[str] = Field(default_factory=list)
