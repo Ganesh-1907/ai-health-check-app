@@ -2504,6 +2504,14 @@ function formatAnalysisValue(value: number) {
   });
 }
 
+const RETINAL_HEALTHY_REFERENCES: Record<string, string> = {
+  "Vessel Density": "0.45 - 0.65",
+  "Avg Vessel Width": "4.5 - 6.5",
+  "Tortuosity": "1.0 - 2.5",
+  "Disc Area": "10,000 - 20,000 pixels",
+  "Disc Diameter": "100 - 180 pixels",
+};
+
 function RetinalRiskGauge({
   value,
   riskLevel,
@@ -2823,16 +2831,18 @@ function RetinalAnalysisScreen() {
           <View style={{ flexDirection: isWideLayout ? "row" : "column", gap: 18 }}>
             {result.features && (
               <SectionCard
-                subtitle="Feature Values"
+                subtitle="Measured values with healthy reference ranges"
                 title="Measurements"
                 testID="retinal-feature-values-card"
                 style={{ flex: isWideLayout ? 0.9 : undefined, backgroundColor: "#FCFEFF", borderColor: "#D7E8F3" }}
               >
                 <View style={{ borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: "#D7E8F3" }}>
                   <View style={{ flexDirection: "row", backgroundColor: "#EAF4FA", borderBottomWidth: 1, borderBottomColor: "#D7E8F3" }}>
-                    <Text style={{ flex: 1, padding: 12, fontWeight: "700", color: "#567286" }}>Feature</Text>
+                    <Text style={{ flex: 1.05, padding: 12, fontWeight: "700", color: "#567286" }}>Feature</Text>
                     <View style={{ width: 1, backgroundColor: "#D7E8F3" }} />
-                    <Text style={{ flex: 1, padding: 12, fontWeight: "700", color: "#567286" }}>Value</Text>
+                    <Text style={{ flex: 0.8, padding: 12, fontWeight: "700", color: "#567286" }}>Measured Value</Text>
+                    <View style={{ width: 1, backgroundColor: "#D7E8F3" }} />
+                    <Text style={{ flex: 1.15, padding: 12, fontWeight: "700", color: "#567286" }}>Healthy Reference</Text>
                   </View>
                   {Object.entries(result.features).map(([key, value], idx, entries) => (
                     <View
@@ -2844,10 +2854,14 @@ function RetinalAnalysisScreen() {
                         borderBottomColor: "#E1EDF5",
                       }}
                     >
-                      <Text style={{ flex: 1, padding: 12, fontSize: 14, color: palette.ink }}>{key}</Text>
+                      <Text style={{ flex: 1.05, padding: 12, fontSize: 14, color: palette.ink }}>{key}</Text>
                       <View style={{ width: 1, backgroundColor: "#E1EDF5" }} />
-                      <Text style={{ flex: 1, padding: 12, fontSize: 14, color: palette.brandDeep, fontWeight: "700" }}>
+                      <Text style={{ flex: 0.8, padding: 12, fontSize: 14, color: palette.brandDeep, fontWeight: "700" }}>
                         {formatAnalysisValue(Number(value) || 0)}
+                      </Text>
+                      <View style={{ width: 1, backgroundColor: "#E1EDF5" }} />
+                      <Text style={{ flex: 1.15, padding: 12, fontSize: 14, color: "#567286", fontWeight: "600" }}>
+                        {RETINAL_HEALTHY_REFERENCES[key] || "Not specified"}
                       </Text>
                     </View>
                   ))}
